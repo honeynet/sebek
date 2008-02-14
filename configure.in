@@ -1,0 +1,89 @@
+AC_INIT(sebek.c)
+AM_INIT_AUTOMAKE(sebek-linux,3.2.0c)
+AM_CONFIG_HEADER(config.h)
+AC_PROG_CC
+
+
+AC_CANONICAL_HOST
+
+case "$host" in
+  *-linux*)
+    linux=yes
+    AC_DEFINE(LINUX)
+    ;;
+  *-openbsd*)
+    AC_DEFINE(OPENBSD)
+    ;;
+  *-solaris*)
+    AC_DEFINE(SOLARIS)
+    ;;
+
+  *-freebsd*)
+    AC_DEFINE(FREEBSD)
+    ;;
+  *-bsdi*)
+    AC_DEFINE(BSDI)
+    ;;
+  *-apple*)
+    AC_DEFINE(MACOS)
+esac
+
+if test -n "$LINUX"; then
+  echo " You need to be running on Linux box to build this"
+  exit
+fi
+
+AC_MSG_CHECKING([for kernel_source_dir])
+AC_ARG_WITH(kernel_source_dir,
+   [  --with-kernel_source_dir=DIR  Use kernel sources located at DIR ],
+   [KERN_SRC=$withval;
+      echo "kernel_dir given";
+      ],
+  [ KERN_SRC="/usr/src/linux-2.4";
+      echo "kernel dir assumed at /usr/src/linux-2.4";
+      ]
+)
+AC_SUBST(kern_src, $KERN_SRC)
+
+AC_ARG_WITH(gcc,
+   [  --with-gcc=FILE  Use gcc compiler located at FILE ],
+   [CC=$withval;
+      echo "kernel_dir given";
+      ],
+    [echo "using default compiler"]
+)
+
+
+AC_CHECK_FILE([${KERN_SRC}/include/linux/sched.h],
+    ,
+   [AC_MSG_ERROR([Kernel source should be installed in ${KERN_SRC}])])
+
+
+AC_PROG_INSTALL
+AC_CONFIG_FILES([Makefile])
+
+CFLAGS="-I"${KERN_SRC}"/include -D__KERNEL__ -c" 
+
+AC_CHECK_MEMBER(struct task_struct.p_pptr,
+                [
+                        AC_DEFINE(SBK_TASK_P_PPTR)
+                        echo "Kernel Using P_PPTR"
+                ],
+                [       echo "Kernel NOT using P_PPTR"],
+		[#include <linux/sched.h>]
+                
+
+                )
+
+
+
+
+#AC_TRY_COMPILE([#include "sebek.h"],[int test_blah(){return 0;};],
+AC_TRY_COMPILE([#include "sebek.h"],[return 0;],
+
+		[echo "Kernel Dependencies check"],
+		[AC_MSG_ERROR(
+			[Dependencies for kernel at ${KERN_SRC} where not found. Configure the kernel (make {x|old|menu}config)  and run 'make dep'.])
+			]
+		)
+AC_OUTPUT

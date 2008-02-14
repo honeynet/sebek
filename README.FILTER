@@ -1,0 +1,300 @@
+################################################################################
+#                                                                              #
+#  Sebek Filters:  All about how Filtering works in sebek                      #
+#                                                                              #
+#  Edward Balas ebalas@savidtech.com                                           #
+#                                                                              #
+################################################################################
+
+
+Introduction:
+
+  Sebek provided a powerful data capture capability, but it had no abiltiy to control
+  what it captured.  On production systems, this causes a performance hit , a
+  potential fingerprinting opportunity and creates a large volume of largely
+  uninteresting data.  To combat this, we have added a Capture Filter capability
+  which determines the level of detail and type of data to capture.  This filtering 
+  is comceptually similar to how packet filtering works in the linux kernel.
+
+  Sebek Capture Filters control what data is captured. A Filter contains
+  a set of rules that express the desired controls.  Each Rule contains a set of
+  match parameters, and an action.  If all match conditions are met, then the
+  action is taken.  Below is an example rule:
+
+    action=keystrokes sock=(proto=tcp local_port=22)  opt=(follow_child_proc)
+
+  In this example rule, the action is to "keystroke" monitor matching processes. The
+  match in this cases states that this rule is to fire for any TCP connection where
+  the local port is 22(which is SSH). Lastly this rule has one option set, "follow_child_proc".
+  This option tells Sebek to not only keystroke log processes that are associated with
+  the SSH sessions but to also keystroke log any process created by the matching
+  process. So if someone logs in remotely and then spawns a shell we will also record the
+  keystrokes of the shell, this recursive tracking will follow all decendants of the 
+  original matched process.
+
+
+Details:
+
+  Now let us look at depth at each of the three sections of a rule, the
+  Action, the Match and lastly the Options. With in a rule the action is 
+  expressed at the start of the rule and looks like this:
+
+    action=keystrokes 
+
+
+  Action:
+
+    The act element expresses the action to take when there is a match.  There are 
+    3 filter actions: Ignore, Keystrokes and Full.  These control the capture action to 
+    be taken.  
+
+    ignore:
+
+      this tells Sebek to ignore all matching activity.
+
+    keystrokes:
+
+      this tells Sebek to only capture matching keystroke like activity.  
+      Where our heuristic for detecting keystrokes is currently defined as any 
+      sys_read of length equal to 1.
+
+    full:
+
+      this tells Sebek to capture ALL matching activity
+      regardless of the length of the read.
+	
+  Match:
+
+    The match portion of the rule expresses the attributes Sebek should examine
+    to determine if it should capture data.  There are 3 types of filter matches:
+    User ID based, Socket/network based, and file based.  User ID match can be used
+    in conjunction with a Socket or File Match, when done both the User ID and
+    other match must succeed for the match to succeed.
+
+    user:
+
+      The user element expresses a desire to match based on the user id of a process.
+      the rule provides one user id to consider.  This match clause is can be used
+      alone or in conjunction with the sock or file match. user matches look something 
+      like this:
+
+	user=gopher 
+
+
+    sock:
+
+      Socket based matches allow us to match on specific types of network activity.
+      This is a compound match.  There are up to 7 attibutes that can be expressed in
+      a sock match, if more than one is expresses then logically AND the result of
+      each individual element match to determine the overal success of the match. If
+      there is no interest in a specific attribute, simply omit that match element and
+      the match will not test on that attribute. The sock match elements are: proto, 
+      local_port, rem_port, local_ip, rem_ip and 3 flags:  The sock expression itself
+      typically looks like this:
+
+	sock(proto=tcp local_port=22 remote_ip=10.0.13.13 server)
+
+
+
+      proto:
+
+	The proto element defines which IP protocol to match on.  This is expressed
+	as the textual form of the protocol name, as found in /etc/protocols.  The
+	two most common that you will need are "udp" and "tcp".  
+
+      local_port:
+	
+	The local port element defines the local port number to match on.  This
+	is a single integer value in the range of 0 to 65536:
+	
+		local_port=22
+
+      rem_port:
+
+	The remote port element defines the remote port number to match on.  This
+	is a single integer value in the range of 0 to 65536:
+	
+		rem_port=80  
+
+      local_ip:
+
+	The local IP address element defines the local IP address or CIDR block that
+	we are interested in.  There are 2 acceptable forms of expression, the first
+	is standard dotted quad notation:
+	
+		local_ip=10.1.1.13
+	
+	The second is standard CIDR notation:
+
+		local_ip=10.1.1.0/24
+
+	In most cases, local_ip wont be a value of interest, its real interest comes
+	into play on hosts that are multi-homed. 
+
+      rem_ip:
+
+	The remote IP address element defines the remote IP address or CIDR block that
+	we are interested in.  There are 2 acceptable forms of expression, the first
+	is standard dotted quad notation:
+	
+		rem_ip=10.1.1.13
+	
+	The second is standard CIDR notation:
+
+		rem_ip=10.1.1.0/24
+
+	This is particularly useful for monitoring activity on a production service, such as
+	SSH where there are other legitimate users you don't want to monitor.
+
+    
+
+     client:
+
+	This flag is used when you are not so much interest in the specific port values,
+	but are interested in the direction of the connection.  if the client flag
+	is set then, we match on client connections initiated from the local host.
+	The flag is specified by simple including "client" in the sock statement. The server 
+	and client flags are mutually exclusive.
+
+
+     server:
+
+	This flag is used when you are not so much interest in the specific port values,
+	but are interested in the direction of the connection.  if the server flag
+	is set then, we match on  connections initiated from the remote host to the 
+	local host.  The flag is specified by simple including "server" in the sock 
+	statement.  The server and client flags are mutually exclusive.
+	
+    strict:
+	
+	The last flag that you can use is the strict flag.  This determins if the match
+	is to the entire process or just the inode directly associated with
+	the network connection.  If strict is set, then only the specific inode assocated
+	with connection will be monitored.
+
+
+    file:
+
+      File based matches allow us to match on activity related to specific files in
+      the file system. This is a compound match.  There is one attribute and 2 flags
+      for file matches.  As with all other compond matches, multiple elements are
+      tested and their results logically ANDed to determine overal success of the
+      match.  The file match elemets are: name, and 2 flags.  A file expression
+      looks like this:
+
+		file=(name=/dev/ strict inc_subdirs)
+
+      name:
+
+        The name element is used to express the absolute path name of the file
+	or directory of interest.
+
+      inc_subdirs:
+
+	The inc_subdirs flag is used to signal that the match should not just be for
+	the specific file specified, but if the name refers to a directory and
+        the inc_subdirs flag is set, then any file in a subdirectory of the directory
+	named in this expression will also match.  
+
+      strict:
+	
+	The last flag that you can use is the strict flag.  This determins if the match
+	is to the entire process or just the inode directly associated with the matching 
+	file.  If strict is set, then only the specific inode assocated
+	with the file will be monitored. 
+	
+
+  Options:
+
+    The opt element defines the specific rule wide flags to be set.  Currently
+    there is only one option available, follow_child_proc.
+
+    follow_child_proc:
+
+	follow_child_proc is a special flag that allows us determine if a child process
+	should inherit the monitoring flags associated with the parent.  If follow_child_proc
+	is specified and a parent process matches the rule, then if the parent spawns a child
+	process Sebek will also capture data on the child.  It should also be noted that
+	this option is mutually exclusive of with the strict flag set in sock or file
+	matches.  If, strict is set, then the process is not marked for capture, but
+	rather the inode is, if there is a fork, then there is not process capture flag
+	so it wont be inherited.
+
+
+
+Rule Evaluation:
+
+  Rule are evaluated in order of specification. However rules are not evaluated at
+  the time of the sys_read call.  Typically there is a 1 to N relationship between a 
+  sys_socket or sys_open call and sys_read calls on the inode opened by one of the prior 
+  two calls.  To boost performance, we determine if a process or inode is to be monitored at
+  the point that an inode is associated with something.  File based rules are 
+  evaluated at the point of the sys_open call.  Socket based rules are evaluated at the point 
+  of the sys_socket call.  User ID only rules are evaluated at the time of the sys_fork , or 
+  similar call and at the time of sys_read.  Because we are tagging processes and inodes 
+  there are a couple of things to keep in mind when defining rules. 
+
+
+  1.  Rules match at the time of a file or socket being opened are are not re-evaluated.  If
+      a user logs in as "foo" via SSH and then later "su"s to "bar"   You can NOT use the
+      rule:  
+
+        action=full user=bar sock(proto=tcp local_port=22 server) op=(follow_child_proc)
+
+      to start monitoring at the connection at the point where the "foo" changed to bar.
+
+
+  2. Multiple rules can affect the capture state of an inode.  For example consider the
+     the following 2 rules.
+
+       action=keystrokes user=foo file(name=/home/secretsquirrel/topsecret) opt=(follow_child_proc)
+	
+       action=full       user=bar file(name=/home/secretsquirrel/topsecret) opt=(follow_child_proc)
+
+
+     If user foo opens the file before user bar, then all of foo's processes that match
+     will have keystrokes captured, however at the point that user bar has a process that
+     matches, then both foo and bar's processes will have their read data fully captured.
+
+     It is recommended that extreme caution be used when defining rules that combine both
+     user matches and file matches for this reason.  It is recommended that file rules
+     be used most often to screen out data we KNOW will never be of interest via the
+     ignore action and to do this at the top of the filter file.
+
+
+  3. User only matches are pretty straight forward and are the only rules that *can* be evaluated
+     in sys_read.  However, once a process matches such a rule it is tagged and will be forever
+     monitored even if the user ID later changes.  Ex.
+
+	action=full user=foo
+
+     The following rule will cature ALL read activity for any process running as UID=foo.  If
+     down the road user foo "su"s to user bar, the processes that where once running as user foo
+     will continue to be monitored even when they have become user bar.
+
+
+  4.  By default, if there is no matching rule specified in the filter file, Sebek will ignore
+      a given process or inode.
+
+
+Examples:
+
+
+  1.  Capture all data read from /dev/random, but ignore all other reads of files in the
+      file systems:
+
+	action=full   file=(name=/dev/random  strict             )
+	action=ignore file=(name=/            strict  inc_subdirs)	
+
+
+  2.  Keystroke monitor user bar, but if he uses https then get a full capture of that
+      data.
+
+	action=keystrokes user=bar  opt=(follow_child_proc)
+	action=full       user=bar  sock=(proto=tcp rem_port=443 client)
+	
+
+  3.  overide the default and keystroke log everything(this would need to be the
+	last rule in the file)
+
+	action=keystrokes

@@ -1,0 +1,213 @@
+################################################################################
+#                                                                              #
+#  Sebek:  kernel module based data capture                                    #
+#                                                                              #
+#  Edward Balas ebalas@indiana.edu                                             #
+#                                                                              #
+################################################################################
+
+Note:
+
+  This describes the version 3.x linux sebek client, version 3 uses a new
+  packet format which is not backwards compatable. You need to use a 3.x 
+  of the Server to be compatable.  Also note that this new server along
+  with a new web UI named Walleye are part of the new honeywall ISO.
+
+Theory of operation:
+
+  Sebek uses techniques similar to those used by LKM based rootkits.  There is 
+  one module, sebek.o, that overrides the sys_read, sys_socket and sys_open call
+  to collect interesting data.  Once the data is collected, this module exports 
+  this data over the network to a remote host.  Sebek.o also modifies the behavior 
+  of the kernel to prevent the discovery of the packets it is transmitting. The 
+  second module, cleaner.o is used to hide the presence of the sebek.o module.  A 
+  detailed history of changes for this package is provided in the ChangeLog file.
+
+
+Building Sebek:
+
+Prior to building ensure that the the /usr/src/linux-2.4 points to the proper 
+version of the kernel source. It should be noted that sebek must be built 
+against the exact version you intend to run sebek on. Finally the kernel must not only be decompressed but also configured and the dependencies resolved ('make {x|old|menu}config ' and 'make dep').
+
+To build sebek, do the following:
+
+  - ./configure
+  - make
+
+After successful building, a binary tarball will be generated in 
+the source directory ex. sebek-linux-3.x.x.tar .  This tarball is all
+that one need to copy on to the honeypot.
+
+The configure script has two options that may be of use to you:
+
+  --with-kernel_source_dir=DIR  Use kernel sources located at DIR
+  --with-gcc=FILE  Use gcc compiler located at FILE
+
+
+
+Configuring Sebek:
+
+when configuring the sebek module there are 9 parameters that need to be 
+defined in upper portion of the sbk_install.sh script.
+
+ - DESTINATION_MAC
+ 
+	This sets the destination address to use in the Ethernet header
+
+ - DESTINATION_IP
+	
+	This sets the destination address to use in the IP header
+
+ - DESTINATION_PORT
+
+	This defines the destination UDP number to use. THIS NEEDS to be defined.
+
+
+ - SOURCE_PORT
+
+	This defines the source UDP number to use. This is optional. 
+
+
+ - MAGIC Value
+	
+	This defines the value used in conjunction with the DESTINATION_PORT to 
+	determine which packets to hide.  THIS NEEDS to be defined in the config.
+
+ 
+ - INTERFACE
+	
+	This specifies which interface sebek packets should be exported from.
+
+ - KEYSTROKE_ONLY
+
+	This determines how much data sebek collects, if this is set, then 
+	only reads of length 1 are collected.  This corresponds to interactive 
+	sessions that echo characters.  If this NOT set then ALL read calls
+	are recorded.
+
+- SOCKET_TRACKING
+
+	This determines if sebek reports on socket activty such as Connect and
+	Accept actions. If set to 0, socket tracking is disabled.
+
+
+ - TESTING
+
+	This controls the hiding of the sebek module itself.  If this is set
+	then the install script will not hide the sebek module, allowing you
+    	to rmmod it later.
+
+ 
+ - MODULE_NAME
+
+	Allows you to change the name of the module as installed into the system.
+	Even though the module is hidden there are artifacts left in memory
+	that reference the module name.   If you leave this variable blank, a
+	random name is selected.   Names should include the .o suffix.
+
+
+Running:  
+
+  All files for sebek are in the same directory, within that
+  directory is sbk_install.sh.  sbk_install.sh is the script that contains the 
+  sebek configuration and the commands to properly install sebek.
+
+  Once you have edited sebek.sh according to you desires and make it
+  executable, its a matter of executing ./sbk_install.sh and the fun
+  begins.
+
+  Please keep in mind that the linux client is a kernel module, and
+  unless you install it from a startup script, upon a reboot sebek 
+  will no longer be installed.
+
+Uninstalling:
+
+  Sebek can be uninstalled ONLY if TESTING is set.  If it is set then
+  the Cleaner module will not be installed and you can remove the sebek
+  module through the use of the rmmod command.  
+
+
+Review of Best Practices:
+
+  As an open source technology, it is most likely impossible to
+  develop a version of Sebek that can not be detected once an attacker
+  gains privileged access.  For more information on the risks and 
+  issues facing honeynets, refer to:
+
+       Know Your Enemy: Honeynets
+	    http://www.honeynet.org/papers/honeynet
+
+  Independent of the client implementation there are some practices
+  that we recommend to minimize the risk in this specific case:
+
+    1.   It is recommended that you run sbk_extract in a chroot 
+         environment protected with Systrace and, if available,  
+         your favorite flavor of stack protection.  This 
+         recommendation applies to all data capture tools run on
+         a honeynet.
+
+
+    2.   To decrease the likelihood of detection, it is recommended 
+         that you modify the source of Sebek so that it is different 
+         from that which is publicly available.  
+
+    3.   In typical deployments where Data Capture occurs on a 
+         bridging firewall, it is recommended that the Sebek client 
+         be configured to send packets to the IP and MAC address of 
+         the default gateway.  By doing this, even if an intruder 
+         recovers the configuration,  the only information 
+         disclosed is the magic value, and destination port number.
+         When possible DO NOT configure the IP or MAC address of 
+         the server into the Sebek Client.
+
+
+Testing:
+
+  Sebek has been tested on the following systems:
+
+  - Redhat EL3
+	2.4.20-21
+
+  - Redhat 9.0 
+	2.4.20-8smp running on dual athlon
+ 
+  - Redhat 8.0 
+	2.4.18-27-7 running on vmware box
+
+  - Redhat 7.3
+	2.4.18-3 running on laptop with aironet340 card or orinoco gold
+	
+  
+
+
+Bugs:
+
+  currently there is a problem with removing sebek.o after insmod.  
+  The problem is related to the fact that after module removal, there is
+  no longer a valid raw socket implementation and this causes some
+  kernel stability issues.  This causes kernel oops at system shutdown
+  and may also cause problems if you try to run tcpdump after rmmoding
+  sebek.  
+
+  There is also a problem with processes that are blocking on a read
+  causing an oops after then are reawakened.  
+
+  Some systems that have been patched for the kmod/ptrace vuln seem to 
+  not be working well with sebek. This seems to be based on which patch is
+  used.  For instance the STD patch for redhat 8.0 and 7.3 seems to work
+  just fine.
+
+
+  Running on Althon CPUs:
+
+  It has been recently discovered that sebek doesnt seem to be stable on some
+  AMD systems.  I have only tested this on dual athlon box.  The problem can be
+  triggered by running tcpdump on a sebeked host.   The kernel panics with the
+  af_packet code trying to call function using a bad function pointer.  We are still
+  investigating the cause of this one.
+
+
+
+	
+

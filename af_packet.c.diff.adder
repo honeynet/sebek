@@ -1,0 +1,7 @@
+--- af_packet.c.blah	2005-08-26 09:38:18.643179087 -0500
++++ af_packet.c	2005-08-26 09:49:46.598944733 -0500
+@@ -1902,3 +1902,4 @@
+ 
+ module_init(packet_init);
+ module_exit(packet_exit);
++MODULE_LICENSE("GPL");
