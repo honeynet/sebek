@@ -1,0 +1,116 @@
+###############################################################################
+#                                                                             #
+#  Sebek:  data collection and analysis tools                                 #
+#                                                                             #
+#           Edward Balas   ebalas@iu.edu                                      #
+#                                                                             #
+###############################################################################
+
+
+Intro:
+
+  Sebek exports UDP packets on the LAN to a data collection host which sniffs
+  them off the LAN using an application based on libpcap.  The extraction app, 
+  called sbk_extract is told what interface to sniff on and what destination port
+  number ot look for(or what tcpdump file to read). 
+
+  As packets are processed,  a binary representation of the 
+  Sebek record is output to standard out.  This output is then piped to the input 
+  of a utility called sbk_upload.pl, which uploads this data into a Mysql database
+  or into a utility called sbk_ks_log.pl, which writes keystroke logs to standard out.
+
+Building:
+
+  - ./configure
+  - make
+  - make install
+
+
+
+Running:
+
+  sbk_extract can pull sebek packets from libpcap file or from
+  network interface. As it does so, it sends each record to standard out.
+
+  Options include:
+
+	-i device, if you are sniffing from the network this
+		specifies which interface.
+
+	-f file, if you are reading from pcap file, this specifies
+		which file, you can read from file, or read from
+		net
+	
+	-p port, specified what Destination UDP port to look for
+
+        -u username, username to setuid to.
+
+        -c path, path of chroot jail.
+
+
+
+
+  sebekd.pl is designed to operate on the roo, it controls all
+  aspects of running sbk_extract and uploading sebek data into
+  the hflow database.
+ 
+
+  skb_diag.pl is a raw formater of out put from sbk_extract, it	
+  creates barely human readable output
+
+  sbk_ks_log.pl write only the keystroke logs to standard out.  It has no options.
+
+  Example:
+
+	sbk_extract -i eth1 -p 1101 | sbk_ks_log.pl 
+
+
+  sbk_viewer.pl is similar to sbk_ks_log.pl but it also allows you to view the
+  experimental write data
+  	 
+
+
+Adding functionality:
+
+  If you dont like the existing database or want to write some sorta of custom tool
+  to munge the Sebek records, then the best place to get a decent data feed is
+  directly from the output of sbk_extract.
+
+  The record format exported by sbk_extract is the following:
+
+ ($ip,$magic,$ver,$counter,$time_sec,$time_usec,$pid,$uid,$fd,$com,$len) =
+            unpack("NNnnNNNNNNa10N",$line);
+
+  read(STDIN,$data,$len,0);
+
+
+	IP address: 	32bit unsigned
+	MAGIC Val:	32bit unsigned
+        Sebek Ver:	16bit unsigned
+	Type		16bit unsigned
+        Counter: 	32bit unsigned
+        Time_sec:	32bit unsigned
+	Time_usec:	32bit unsigned	
+	Proc ID:	32bit unsigned
+	User ID:	32bit unsigned
+	File Desc:	32bit unsigned
+	Command:	12char array
+	Length:		Data Length
+
+	Data:		Variable Length data
+
+
+
+BUGS:
+
+	Some version of linux which have perl 5.8, which has a 
+	serious bug in it.  The read function malfunctions.
+
+	http://archive.develooper.com/perl5-porters@perl.org/msg92560.html
+
+	If this problem is present, then try the following workaround
+
+	export LANG="POSIX"
+
+	I have NO idea as to why this resolves the issue.
+

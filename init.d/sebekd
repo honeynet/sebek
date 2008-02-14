@@ -1,0 +1,171 @@
+#!/bin/bash
+# sebek server startup script	   
+#
+# chkconfig: 35 54 35
+# description: Sebek Server
+#
+PATH=/usr/bin:/sbin:/bin:/usr/sbin
+export PATH
+
+# Source function library.
+. /etc/rc.d/init.d/hwfuncs.sub
+. /etc/rc.d/init.d/functions
+
+# Source config info
+
+hw_setvars
+
+SEBEK_PIPE=/var/run/sebek-pipe
+DBPASSWD=honey
+DBUSER=hflow
+CWD=`pwd`
+PID=/var/run/sebekd.pid
+
+pidof() {
+        local pid
+        pid=`ps -C sebekd.pl | grep -v PID | awk '{print $1;}'`
+        echo "$pid" | grep -q " "
+        if [ $? -eq 0 ]; then
+                logger -p local0.warn "sebekd: found multiple sebekd.pl processes"
+                echo ""
+                return 1
+        else
+                echo $pid
+                return 0
+        fi
+}
+
+
+status() {
+        local base=${1##*/}
+        local pid
+
+        # Test syntax.
+        if [ "$#" = 0 ] ; then
+                echo $"Usage: status {program}"
+                return 1
+        fi
+
+        # First try to find PID using ps.
+        pid=`ps -C sebekd.pl | grep -v PID | awk '{print $1;}'`
+        if [ -n "$pid" ]; then
+                echo $"${base} (pid $pid) is running..."
+                return 0
+        fi
+
+        # Try "/var/run/*.pid" files
+        if [ -f /var/run/${base}.pid ] ; then
+                read pid < /var/run/${base}.pid
+                if [ -n "$pid" ]; then
+                        echo $"${base} dead, but pid file exists"
+                        logger -p local0.warn "sebekd: sebekd.pl dead, but pid file exists"
+                        return 1
+                fi
+        fi
+        # See if /var/lock/subsys/${base} exists
+        if [ -f /var/lock/subsys/${base} ]; then
+                logger -p local0.warn "sebekd: sebekd.pl dead, but subsys locked"
+                echo $"${base} dead but subsys locked"
+                return 2
+        fi
+        echo $"${base} is stopped"
+        return 3
+}
+
+
+start() {
+        if [ "x$HwMANAGE_IP" = "x" -o \
+            "x$HwLAN_IP_RANGE" = "x" ]; then
+            logger -p local0.warn "sebekd: HwMANAGE_IP or HwLAN_IP_RANGE not defined: skipping startup"
+            return 1
+        fi
+
+        #--- create the fifo
+        rm -f ${SEBEK_PIPE}
+        mkfifo ${SEBEK_PIPE}
+
+	nohup  /usr/sbin/sebekd.pl -U ${DBUSER} -W ${DBPASSWD}  -p ${HwSEBEK_DST_PORT}  -i ${HwLAN_IFACE} -l ${SEBEK_PIPE} -I ${HwMANAGE_IP}> /var/log/sebekd 2>&1 &
+	# /usr/sbin/sebekd.pl -U ${DBUSER} -W ${DBPASSWD}  -p ${HwSEBEK_DST_PORT}  -i ${HwLAN_IFACE} -l ${SEBEK_PIPE} -I ${HwMANAGE_IP}> /var/log/sebekd 2>&1 &
+	sleep 5
+        P="$(pidof sebekd.pl)"
+        if [ "x$P" = "x" ]; then
+            echo $"$0: can't find sebekd.pl pid"
+            action $"Starting Sebekd: " /bin/false
+            return 1
+        fi
+
+        echo $P > $PID
+        action $"Starting Sebekd: " /bin/true
+        touch /var/lock/subsys/sebekd
+        return 0
+}
+
+stop() {
+        local retval=0
+	local RETVAL_B=0
+        if [ -f $PID ]; then
+                kill -TERM `cat $PID`
+		RETVAL_A=$?
+                rm -f $PID
+                rm -f /var/lock/subsys/sebekd
+		if [ "$(pgrep sbk_extract | wc -l)" -gt 0 ]; then
+		   kill -9 $(pgrep sbk_extract)
+		   RETVAL_B=$?
+		fi
+		if [ "${RETVAL_A}" -ne 0 -o "${RETVAL_B}" -ne 0 ]; then
+                   action $"Stopping Sebekd: " /bin/false
+                   retval=1
+		else
+                   action $"Stopping Sebekd: " /bin/true
+		fi
+        else
+                action $"Stopping Sebekd: " /bin/false
+                retval=1
+        fi
+        return $retval
+}
+
+
+# Begin main body
+
+hw_setvars
+
+case "$1" in
+start)
+        start
+        exit $?
+        ;;
+
+stop)
+        stop
+        exit $?
+        ;;
+
+restart)
+        cd $CWD
+        status sebekd > /dev/null
+        if [ $? -eq 0 ];then
+            stop
+        fi
+        start
+        exit $?
+        ;;
+
+status)
+        status sebekd
+        exit $?
+        ;;
+
+probe)
+        exit 0
+        ;;
+
+*)
+        echo "Usage: $0 {start|stop|status|restart}"
+        exit 1
+        ;;
+
+esac
+
+exit 0
+

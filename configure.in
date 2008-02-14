@@ -1,0 +1,73 @@
+AC_INIT(sbk_extract.c)
+
+AM_INIT_AUTOMAKE(sebekd,3.0.3)
+AM_CONFIG_HEADER(config.h)
+AM_PROG_CC_STDC
+
+AC_PROG_CC
+if test -n "$GCC"; then
+    CFLAGS="$CFLAGS -Wall "
+fi
+
+AC_CANONICAL_HOST
+
+case "$host" in
+  *-linux*)
+    linux=yes
+    AC_DEFINE(LINUX)
+    AC_SUBST(extra_include)
+    extra_include=-I/usr/include/pcap
+    ;;
+  *-openbsd*)
+    AC_DEFINE(OPENBSD)
+    ;;
+  *-solaris*)
+    AC_DEFINE(SOLARIS)
+    ;;
+
+  *-freebsd*)
+    AC_DEFINE(FREEBSD)
+    ;;
+  *-bsdi*)
+    AC_DEFINE(BSDI)
+    ;;
+  *-apple*)
+    AC_DEFINE(MACOS)
+esac
+
+dnl #----- check for presence of LIBPCAP
+
+AC_ARG_WITH(libpcap_includes,
+    [  --with-libpcap-includes=DIR  libpcap include directory],
+    [with_libpcap_includes="$withval"],[with_libpcap_includes=no])
+
+AC_ARG_WITH(libpcap_libraries,
+    [  --with-libpcap-libraries=DIR  libpcap library directory],
+    [with_libpcap_libraries="$withval"],[with_libpcap_libraries=no])
+
+if test "$with_libpcap_includes" != "no"; then
+   CPPFLAGS="${CPPFLAGS} -I${with_libpcap_includes}"
+fi
+
+if test "$with_libpcap_libraries" != "no"; then
+   LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
+fi
+ 
+LPCAP=""
+AC_CHECK_LIB(pcap, pcap_datalink,, LPCAP="no")
+
+if test "$LPCAP" = "no"; then
+  echo
+  echo "   ERROR!  Libpcap library/headers not found, go get it from"
+  echo "   ftp://ftp.ee.lbl.gov/libpcap.tar.Z"
+  echo "   or use the --with-libpcap-* options, if you have it installed"
+  echo "   in unusual place"
+  exit
+fi
+
+INCLUDES='$(extra_include)'
+
+AC_SUBST(INCLUDES)
+
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile)

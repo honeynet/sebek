@@ -1,0 +1,19 @@
+version=3.0.3
+release=5
+pname=sebekd-$(version)
+tarball=$(pname)-$(release).tar.gz
+tarball=$(pname).tar.gz
+tmpdir=/tmp/pkg
+workdir=$(tmpdir)/$(pname)
+
+rpm:
+	aclocal
+	autoheader
+	autoconf 
+	automake -a
+	./configure
+	make dist
+	rpmbuild --sign -tb $(tarball)
+
+clean:
+	rm -f $(tarball) $(HOME)/rpm/SOURCES/$(tarball)
