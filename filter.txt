@@ -1,0 +1,90 @@
+#-----------------------------------------------------------------------------
+#----- Sebek capture filter file  --------------------------------------------
+#-----------------------------------------------------------------------------
+#----- quick start: just keystroke monitor incoming connections and ----------
+#----- fully record reads on /dev/random  ------------------------------------
+#-----------------------------------------------------------------------------
+action=full          file=(name=/dev/random  strict)
+action=keystrokes    sock=(server) opt=(follow_child_proc)
+action=ignore        file=(name=/dev/zero strict)
+
+
+
+###############################################################################
+############### a few other examples ##########################################
+###############################################################################
+
+#-----------------------------------------------------------------------------
+#----- File System filters  --------------------------------------------------
+#-----------------------------------------------------------------------------
+
+#-----
+#----- record all reads on /dev/random but ignore the rest of the /dev fs.
+#-----
+#action=full   file=(name=/dev/random  strict)
+#action=ignore file=(name=/dev/        strict  inc_subdirs)
+
+
+
+
+#------------------------------------------------------------------------------
+#------ Network Connection based filters  -------------------------------------
+#------------------------------------------------------------------------------
+
+#-----
+#----- record ALL HTTPS activity, assuming its on port 443
+#-----
+#action=full sock=(proto=tcp rem_port=443)
+#action=full sock=(proto=tcp local_port=443)
+
+#----- 
+#----- record all SSH activity, including any child processes
+#-----
+#action=keystrokes sock=(proto=tcp rem_port=22)    
+#action=keystrokes sock=(proto=tcp local_port=22)  opt=(follow_child_proc)
+
+
+
+
+#------------------------------------------------------------------------------
+#----- example focus on a specific user ---------------------------------------
+#------------------------------------------------------------------------------
+
+#-----
+#----- monitior keystrokes of the gopher user
+#-----
+#----- by setting the follow_child flag, even if a user
+#----- changes UIDs we will continue to monitor the process tree
+#-----
+#action=keystrokes user=gopher opt=(follow_child_proc)
+
+#-----
+#----- monitor data transfered from cnn's network  via tcp by a client run
+#----- by the gopher user
+#-----
+#action=full user=gopher  sock=(proto=tcp rem_ip=64.236.0.0/16 client)
+
+
+
+
+#------------------------------------------------------------------------------
+#----- example focus on a remote network of interest --------------------------
+#------------------------------------------------------------------------------
+
+#------
+#------ is sombody from 192.168.0.0/16  opens a TCP connection to this
+#------ host, monitor their keystrokes.
+#------
+#action=keystrokes sock=(proto=tcp rem_ip=192.168.0.0/16 server) opt=(follow_child_proc)
+
+
+
+#------------------------------------------------------------------------------
+#----- example default action -------------------------------------------------
+#------------------------------------------------------------------------------
+
+#----- 
+#----- if this is not set, and in absence of any rules we will
+#----- ignore by default
+#-----
+#action=keystrokes

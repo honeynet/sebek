@@ -1,0 +1,16 @@
+3.1.3b:
+  solved a bug in the Sebek module hidding capabilities
+
+3.1.2b:
+  added experimental write tracking care of Raul
+
+  converted over to GPL
+
+3.1.1b:
+
+  integration into 2.6 module build system
+
+  re-organization and porting of Sebek linux 2.4 code.
+
+  should provide equivalant functionality as
+  sebek-linux-3.0.3

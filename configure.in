@@ -1,0 +1,183 @@
+AC_INIT(sebek)
+AC_CONFIG_SRCDIR(src/sebek.c)
+AM_INIT_AUTOMAKE(sebek-lin26,3.2.0b)
+AM_CONFIG_HEADER(src/config.h)
+
+AC_PROG_CC
+
+AC_CANONICAL_HOST
+
+case "$host" in
+  *-linux*)
+    linux=yes
+    AC_DEFINE(LINUX)
+    ;;
+  *-openbsd*)
+    AC_DEFINE(OPENBSD)
+    ;;
+  *-solaris*)
+    AC_DEFINE(SOLARIS)
+    ;;
+  *-freebsd*)
+    AC_DEFINE(FREEBSD)
+    ;;
+  *-bsdi*)
+    AC_DEFINE(BSDI)
+    ;;
+  *-apple*)
+    AC_DEFINE(MACOS)
+esac
+
+if test -n "$LINUX"; then
+  echo " You need to be running on Linux box to build this"
+  exit
+fi
+
+
+DEF_KERN="/lib/modules/"`uname -r`"/build"
+
+AC_ARG_WITH(kernel-dir,
+	AC_HELP_STRING([--with-kernel-dir=kerneldir],
+		       [use this directory for kernel sources (default is $DEF_KERN)]),
+	[ KERN_SRC="$withval" ],
+	[ KERN_SRC="$DEF_KERN" ]
+	)
+AC_SUBST(KERN_SRC)
+
+
+
+
+AC_ARG_WITH(gcc,
+   [  --with-gcc=FILE  Use gcc compiler located at FILE ],
+   [CC=$withval;
+      echo "kernel_dir given";
+      ],
+    [echo "using default compiler"]
+)
+
+
+AC_CHECK_FILE($KERN_SRC/include/linux/syscalls.h,
+	[ AC_DEFINE(HAVE_LINUX_SYSCALLS_H)],
+	[])
+
+
+AC_PROG_INSTALL
+
+AC_CHECK_PROG(havepatch,patch,"yes","no")
+if test $havepatch = "no"; then
+   echo "*** you must install the patch program to compile sebek.
+	 patch is available at http://www.gnu.org."
+   exit
+fi
+
+
+AC_CHECK_FILE([${KERN_SRC}/include/linux/sched.h],
+    ,
+   [AC_MSG_ERROR([Kernel source should be installed in ${KERN_SRC}])])
+
+
+AC_PROG_INSTALL
+AC_CONFIG_FILES([Makefile])
+
+CFLAGS="-I"${KERN_SRC}"/include -D__KERNEL__ -c"
+
+AC_COMPILE_IFELSE([
+                        #include <linux/sched.h>
+
+                        int
+                        main ()
+                        {
+                          int rval=5;
+                          return 5;
+                        }
+                ],
+                [
+                       
+                        EXTRA_SBK_TEST_FLAGS=""
+                        echo "Kernel defined KBUILD_BASENAME"
+                ],
+
+                [
+                        #AC_DEFINE(KBUILD_BASENAMENOT,"KBUILD_BASENAME",[])
+                        EXTRA_SBK_TEST_FLAGS="-DKBUILD_BASENAME=\"KBUILD_BASENAME\""
+                        echo "Kernel NOT defined KBUILD_BASENAME"
+                ]
+         
+                )
+
+
+CFLAGS="-I"${KERN_SRC}"/include -I"${KERN_SRC}"/include/asm/mach-default -D__KERNEL__  "${EXTRA_SBK_TEST_FLAGS}" -c" 
+
+
+AC_CHECK_MEMBER(struct task_struct.p_pptr,
+                [
+                        AC_DEFINE(SBK_TASK_P_PPTR,,)
+                        echo "Kernel Using P_PPTR"
+                ],
+                [       echo "Kernel NOT using P_PPTR"],
+                [#include <linux/sched.h>]
+
+
+                )
+CFLAGS="-I"${KERN_SRC}"/include -I"${KERN_SRC}"/include/asm/mach-default -D__KERNEL__ "${EXTRA_SBK_TEST_FLAGS}" -c"
+
+AC_CHECK_MEMBER(struct inet_opt.daddr,
+                [
+                        AC_DEFINE(INET_OPT,,)
+                        echo "Kernel Using INET_OPT"
+                ],
+                [       echo "Kernel NOT using INET_OPT"],
+                [#include <linux/ip.h>]
+                )
+
+
+AC_ARG_ENABLE(raw-socket-replacement,
+        [  --disable-raw-socket-replacement stops the replacement of af_packet],
+	[case "${enableval}"  in
+ 	  yes) raw_sock=true;;
+	  no)  raw_sock=false;;
+	  *) AC_MSG_ERROR(bad value ${enableval} for \
+             --enable-raw-socket-replacement);;
+ 	esac],
+	raw_socket=true 
+	)
+
+AM_CONDITIONAL(RAW_SOCK, test x$raw_socket = xtrue)
+
+if test x$raw_socket = xtrue; then
+  AC_DEFINE(RAW_SOCK)
+
+  NEW_INCLUDES="#include \""${KERN_SRC}"/net/packet/af_packet.c\""
+
+  AC_CHECK_FILE([${KERN_SRC}/net/packet/af_packet.c],
+    ,
+   [AC_MSG_ERROR([Cannot find  ${KERN_SRC}/net/packet/af_packet.c ])])
+
+
+
+  CFLAGS="-I"${KERN_SRC}"/include -I"${KERN_SRC}"/include/asm/mach-default -I"${KERN_SRC}" -D__KERNEL__ "$EXTRA_SBK_TEST_FLAGS" -c"
+
+  AC_COMPILE_IFELSE([
+			#include <net/packet/af_packet.c>
+
+			int
+			main ()
+			{
+			  char *p = (char *) &packet_seq_fops;
+			  return 0;
+			}
+		],
+		[
+                        AC_DEFINE(PACK_SEQ_FOPS,,)
+                        echo "Kernel defined packet_seq_fops"
+                ],
+			
+		[
+			echo "Kernel NOT defined packet_seq_fops"]
+		)
+
+
+fi
+
+AC_OUTPUT
+
