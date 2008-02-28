@@ -22,6 +22,21 @@
 
 
 static u32 **    orig_sys_call_table;
+#if ( LINUX_VERSION_CODE > KERNEL_VERSION(2,6,10) )
+struct {
+        unsigned short limit;
+        unsigned int base;
+} __attribute__ ((packed)) idtr;
+
+struct {
+        unsigned short off1;
+        unsigned short sel;
+        unsigned char none,flags;
+        unsigned short off2;
+} __attribute__ ((packed)) idt;
+#define READ_ASM 128     /* How far to read into asm */
+
+#endif
 
 
 //----- ptr to the original reads
@@ -43,10 +58,65 @@ asmlinkage static int (*ovfk)(struct pt_regs regs);
 asmlinkage static int (*oclone)(struct pt_regs regs);
 
 
+#if ( LINUX_VERSION_CODE > KERNEL_VERSION(2,6,10) )
+// implementation of memmem since the kernel doesn't provide one for me
+// used to find the call <something>(,eax,4) after the idt (something) is
+// the location of the sys_call_table
+void *memmem(const void* haystack, size_t hl, const void* needle, size_t nl)
+{
+    int i;
+    if (nl>hl) return 0;
+    for (i=hl-nl+1; i; --i) {
+        if (!memcmp(haystack,needle,nl))
+            return (char*)haystack;
+        ++haystack;
+    }
+    return 0;
+}
+
+u32 find_system_call(void)
+{
+   u32 sys_call_off = 0;
+
+   /* ask the processor for the idt address and store it in idtr */
+   asm ("sidt %0" : "=m" (idtr));
+
+   /* read in IDT for int 0x80 (syscall) */
+   memcpy(&idt,(void *)idtr.base+8*0x80,sizeof(idt));
+   sys_call_off = (idt.off2 << 16) | idt.off1;
+
+   return sys_call_off;
+}
+
+u32 **find_sys_call_table(u32 sc_asm)
+{
+    char *p;
+
+    /* we have syscall routine address now, look for syscall table
+       dispatch (indirect call) */
+    p = (char*)memmem ((void *)sc_asm,READ_ASM,"\xff\x14\x85",3);
+
+    if (p)
+    {
+        return (u32 **)*(unsigned*)(p+3);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+#endif
+
 u32** get_sct(void){
 
+#if ( LINUX_VERSION_CODE > KERNEL_VERSION(2,6,10) )
+   u32 l_system_call = find_system_call();
+   u32 **l_sc_table = find_sys_call_table(l_system_call);
+   return l_sc_table;
+#else
   unsigned long ptr;
-  extern int loops_per_jiffy;
+  //extern int loops_per_jiffy;
+  extern unsigned long loops_per_jiffy;
 
   for (ptr = (unsigned long)&loops_per_jiffy;
        ptr < (unsigned long)&boot_cpu_data; ptr += sizeof(void *)){
@@ -60,6 +130,7 @@ u32** get_sct(void){
     }
 
   }
+#endif
 
   return 0;
 }
