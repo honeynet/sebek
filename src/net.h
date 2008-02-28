@@ -29,6 +29,7 @@
 #include <linux/skbuff.h>
 #include <linux/netdevice.h>
 #include <linux/file.h>
+#include <linux/version.h>
 
 #include <linux/smp_lock.h>
 
