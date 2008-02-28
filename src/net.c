@@ -134,7 +134,11 @@ inline struct sk_buff *  gen_pkt(u_int16_t type,
 
  //-----fill sock buff header data
  skb->protocol = __constant_htons(ETH_P_IP);
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,22) )
  skb->mac.raw = ((u8 *)eth);
+#else
+ skb->mac_header = ((u8 *)eth);
+#endif
  skb->dev = output_dev;
  skb->pkt_type = PACKET_HOST;
 
@@ -195,7 +199,11 @@ inline struct sk_buff *  gen_pkt(u_int16_t type,
 
 inline int tx_pkt(struct sk_buff *pkt){
 
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18) )
   spin_lock_bh(&output_dev->xmit_lock);
+#else
+  netif_tx_lock_bh(output_dev);
+#endif
   if( !netif_queue_stopped(output_dev)){
     if(!output_dev->hard_start_xmit(pkt, output_dev)){
 	s_packets++;
@@ -207,12 +215,20 @@ inline int tx_pkt(struct sk_buff *pkt){
   }
 
   FAIL:
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18) )
   spin_unlock_bh(&output_dev->xmit_lock);
+#else
+  netif_tx_unlock_bh(output_dev);
+#endif
   return 1;
 
 
   SUCCESS:
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18) )
   spin_unlock_bh(&output_dev->xmit_lock);
+#else
+  netif_tx_unlock_bh(output_dev);
+#endif
   return 0;  
 }
 
@@ -519,7 +535,11 @@ static int dev_get_info(char *buffer, char **start, off_t offset, int length)
 
 
         read_lock(&dev_base_lock);
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20) )
         for (dev = dev_base; dev != NULL; dev = dev->next) {
+#else
+        for_each_netdev(dev) {
+#endif
                 size = sprintf_stats(buffer+len, dev);
                 len += size;
                 pos = begin + len;
