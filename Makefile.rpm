@@ -1,5 +1,5 @@
 version=3.0.3
-release=5
+release=6
 pname=sebekd-$(version)
 tarball=$(pname)-$(release).tar.gz
 tarball=$(pname).tar.gz

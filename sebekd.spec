@@ -1,7 +1,7 @@
 Summary: Sebek Server 
 Name: sebekd
 Version: 3.0.3 
-Release: 5
+Release: 6
 License: BSD The Honeynet Project
 Group:  honeywall/data_capture 
 URL: http://project.honeynet.org/tools/hflow
@@ -61,14 +61,19 @@ rm -rf $RPM_BUILD_ROOT
 %post 
 if [ $1 -eq 1 ]; then
 	#--- no other instances must be an install not upgrade
-	/sbin/chkconfig --add sebekd
+	if [ ! -e "/etc/init.d/hflow" ]
+        then
+		/sbin/chkconfig --add sebekd
+	fi
 
 fi
 
 if [ $1 -gt 1 ]; then
 	#--- this was an upgrade, make sure to restart the deamons
-	/sbin/service sebekd restart
-
+	if [ ! -e "/etc/init.d/hflow" ]
+	then
+		/sbin/service sebekd restart
+	fi
 fi
 
 
@@ -78,5 +83,4 @@ if [ $1 -eq  0 ]; then
 	#--- on uninstall if $1 == 0 then we are removing sebekd
 	/etc/init.d/sebekd stop
 	/sbin/chkconfig --del sebekd
-
 fi
