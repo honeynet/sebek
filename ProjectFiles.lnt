@@ -1,0 +1,13 @@
+adapters.c
+antidetection.c
+av.c
+consolespy.c
+debug.c
+exports.c
+hooked_fn.c
+logging.c
+memtrack.c
+packet.c
+sebek.c
+sock.c
+util.c

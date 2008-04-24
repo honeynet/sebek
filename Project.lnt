@@ -1,0 +1,26 @@
++fsc
++fpn
+-t2
+-d_X86_=1
+-di386=1
+-dSTD_CALL
+-dCONDITION_HANDLING=1
+-dNT_INST=0
+-dWIN32=100
+-d_NT1X_=100
+-dWINNT=1
+-d_WIN32_WINNT=0x0500
+-dWINVER=0x0500
+-d_WIN32_IE=0x0501
+-dWIN32_LEAN_AND_MEAN=1
+-dDEVL=1
+-d__BUILDMACHINE__=WinDDK
+-dFPO=0
+-dNDEBUG
+-d_DLL=1      
+-wlib(0)
+-e1924
+-e1904
+-e537
+-e742
+-esym(1776, DbgPrint, 1)

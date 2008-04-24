@@ -1,0 +1,33 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sebek", "sebek.vcproj", "{392D60C9-6E63-4FCA-97F3-CDC50410538D}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Windows 2000 Checked = Windows 2000 Checked
+		Windows 2000 Free = Windows 2000 Free
+		Windows 2003 Checked = Windows 2003 Checked
+		Windows 2003 Free = Windows 2003 Free
+		Windows XP Checked = Windows XP Checked
+		Windows XP Free = Windows XP Free
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2000 Checked.ActiveCfg = Windows 2000 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2000 Checked.Build.0 = Windows 2000 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2000 Free.ActiveCfg = Windows 2000 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2000 Free.Build.0 = Windows 2000 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2003 Checked.ActiveCfg = Windows 2003 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2003 Checked.Build.0 = Windows 2003 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2003 Free.ActiveCfg = Windows 2003 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2003 Free.Build.0 = Windows 2003 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows XP Checked.ActiveCfg = Windows XP Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows XP Checked.Build.0 = Windows XP Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows XP Free.ActiveCfg = Windows XP Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows XP Free.Build.0 = Windows XP Free|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
