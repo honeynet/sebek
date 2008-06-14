@@ -448,7 +448,6 @@ int init_logging(){
 }
 
 
-
 //----- sprintf_stats: prints stats blob for output via proc/net/dev
 //-----                in this case we are modifiying data to remove
 //-----                bytes and packets sent by sebek
@@ -493,7 +492,7 @@ static int sprintf_stats(char *buffer, struct net_device *dev)
     }
 
 
-    size = sprintf(buffer, "%6s:%8lu %7lu %4lu %4lu %4lu %5lu %10lu %9lu %8lu %7lu %4lu %4lu %4lu %5lu %7lu %10lu\n",
+    size = sprintf(buffer, "%6s:%8lu %7lu %4lu %4lu %4lu %5lu %10lu %9lu %8u %7u %4lu %4lu %4lu %5lu %7lu %10lu\n",
                    dev->name,
                    stats->rx_bytes,
                    stats->rx_packets, stats->rx_errors,
@@ -513,7 +512,6 @@ static int sprintf_stats(char *buffer, struct net_device *dev)
   }
   return size;
 }
-
 
 //----- dev_get_info:  called when /proc/net/dev is accessed this calls
 //-----                the modified sprintf_stats.
@@ -535,9 +533,17 @@ static int dev_get_info(char *buffer, char **start, off_t offset, int length)
 
 
         read_lock(&dev_base_lock);
+
+// Less than 2.6.20
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20) )
         for (dev = dev_base; dev != NULL; dev = dev->next) {
+#endif
+
+// Greater than or equal 2.6.24
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24) )
+	for_each_netdev(&init_net,dev) {
 #else
+// 2.6.21 -> 2.6.23
         for_each_netdev(dev) {
 #endif
                 size = sprintf_stats(buffer+len, dev);
@@ -562,14 +568,15 @@ static int dev_get_info(char *buffer, char **start, off_t offset, int length)
         return len;
 }
 
-
 int start_proc_hiding(){
+
   struct proc_dir_entry * proc_ptr;
 
   tx_packets = 0;
   tx_bytes   = 0;
-  
+
   //------ Override /proc/net/dev, recording the old function 
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24) )
   for(proc_ptr = proc_net->subdir;proc_ptr !=0;proc_ptr = proc_ptr->next){
     if(proc_ptr->namelen == 3 && !memcmp("dev",proc_ptr->name,3)){
       old_get_info = proc_ptr->get_info;
@@ -579,9 +586,21 @@ int start_proc_hiding(){
       unlock_kernel();
       return 1;
     }
-    
   }
-  return 0;
+#else
+  for(proc_ptr = init_net.proc_net->subdir;proc_ptr !=0;proc_ptr = proc_ptr->next){
+    if(proc_ptr->namelen == 3 && !memcmp("dev",proc_ptr->name,3)){
+      old_get_info = proc_ptr->get_info;
+      lock_kernel();
+      proc_net_remove(&init_net,"dev");
+      create_proc_info_entry("dev",0,init_net.proc_net,dev_get_info);
+      unlock_kernel();
+      return 1;
+    }
+  }
+#endif
+
+  return 0;    
 }
 
 int stop_proc_hiding(){
@@ -591,8 +610,13 @@ int stop_proc_hiding(){
 
   lock_kernel();
   
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24) )
   proc_net_remove("dev");
   proc_net_create("dev",0,old_get_info);
+#else
+  proc_net_remove(&init_net,"dev");
+  create_proc_info_entry("dev",0,init_net.proc_net,old_get_info);
+#endif
 
   unlock_kernel();
 

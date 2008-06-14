@@ -61,7 +61,7 @@ struct sbk_h{
   u32  uid         __attribute__((packed)) ;
   u32  fd          __attribute__((packed)) ;
   u32  inode       __attribute__((packed)) ;
-  char com[12]     __attribute__((packed)) ;
+  char com[12]     ;
   u32  length      __attribute__((packed)) ;
 };
 
@@ -71,7 +71,7 @@ struct sbk_sock_rec{
   u32  sip        __attribute__((packed)) ;
   u16  sport      __attribute__((packed)) ;
   u16  call       __attribute__((packed)) ;
-  u8   proto      __attribute__((packed)) ;
+  u8   proto      ;
 };
 
 

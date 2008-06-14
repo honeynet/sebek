@@ -158,7 +158,11 @@ inline int  parse_params(void){
 
   //------ read in output interface
   if(INTERFACE){
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24))
+    output_dev = __dev_get_by_name(&init_net,INTERFACE);
+#else
     output_dev = __dev_get_by_name(INTERFACE);
+#endif
     memset(INTERFACE,0,strlen(INTERFACE));
   }
   

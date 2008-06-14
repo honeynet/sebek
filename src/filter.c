@@ -316,6 +316,8 @@ int sbk_filter_open(struct file *f_ptr){
 
   struct sbk_filter * ptr  = sbk_filter_head;
 
+  //---- init i_ptr before use
+  i_ptr = 0;
 
   //---- get inode.
    if(f_ptr && f_ptr->f_dentry && f_ptr->f_vfsmnt)
