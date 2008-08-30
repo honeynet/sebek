@@ -537,13 +537,13 @@ static int dev_get_info(char *buffer, char **start, off_t offset, int length)
 // Less than 2.6.20
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20) )
         for (dev = dev_base; dev != NULL; dev = dev->next) {
-#endif
 
 // Greater than or equal 2.6.24
-#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24) )
+#elif ( LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24) )
 	for_each_netdev(&init_net,dev) {
+
+// 2.6.20 -> 2.6.23
 #else
-// 2.6.21 -> 2.6.23
         for_each_netdev(dev) {
 #endif
                 size = sprintf_stats(buffer+len, dev);
