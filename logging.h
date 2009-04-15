@@ -41,6 +41,7 @@
 #include "sebek.h"
 #include "sock.h"
 #include "net.h"
+#include "util.h"
 
 typedef unsigned char BYTE;
 typedef BYTE *				PBYTE;
@@ -206,7 +207,7 @@ typedef struct _SEND_PACKET_RSVD
     (VOID)NdisWaitEvent(&_SleepEvent, _Seconds*1000);   \
 }
 
-static BOOLEAN s_LoggingInit = FALSE;
+BOOLEAN s_LoggingInit;
 
 NTSTATUS InitLogging();
 NTSTATUS UninitLogging();
@@ -361,19 +362,8 @@ typedef struct _ProcessData {
 	UNICODE_STRING usWindowTitle;
 	UNICODE_STRING usProcessName;
 	UNICODE_STRING usUsername;
-} ProcessData;
-
-extern NPAGED_LOOKASIDE_LIST g_GetProcessLookasideList;
-static BOOLEAN FreeProcessData(ProcessData *pProcessData)
-{
-	if(KeGetCurrentIrql() <= DISPATCH_LEVEL) {
-		if(pProcessData->usWindowTitle.Buffer)
-			ExFreeToNPagedLookasideList(&g_GetProcessLookasideList, pProcessData->usWindowTitle.Buffer);
-
-		return TRUE;
-	} else
-		return FALSE;
-}
+	CHAR ProcessName[NT_PROCNAMELEN+1];
+} ProcessData, *PProcessData;
 
 NTSTATUS
 LogData(

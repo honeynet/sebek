@@ -52,7 +52,7 @@ enum {
 int	filter_packet(int direction, int iface, PNDIS_PACKET packet);
 
 int	process_ip_packet(int direction, int iface, UCHAR *ip_packet, UINT size);
-static int process_transp(int direction, int iface, UCHAR proto, struct ip_hdr *ip_hdr,	UCHAR *pointer, UINT buffer_len);
-static int process_ip(int direction, int iface, struct ip_hdr *ip_hdr);
-static int process_udp(int direction, int iface, struct ip_hdr *ip_hdr, struct udp_hdr *udp_hdr, UCHAR *pointer, UINT buffer_len);
+int process_transp(int direction, int iface, UCHAR proto, struct ip_hdr *ip_hdr,	UCHAR *pointer, UINT buffer_len);
+int process_ip(int direction, int iface, struct ip_hdr *ip_hdr);
+int process_udp(int direction, int iface, struct ip_hdr *ip_hdr, struct udp_hdr *udp_hdr, UCHAR *pointer, UINT buffer_len);
 #endif

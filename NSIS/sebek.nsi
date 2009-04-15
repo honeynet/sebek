@@ -69,7 +69,7 @@ LicenseBkColor /gray
 !define MUI_ABORTWARNING
 !define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\pixel-install.ico"
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\pixel-uninstall.ico"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "..\CONFIG~1\Res\WizardWatermark.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "..\Configuration Wizard\res\WizardWatermark.bmp"
 !define MUI_LICENSEPAGE_BGCOLOR /grey
 
 ; Welcome page

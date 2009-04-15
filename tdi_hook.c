@@ -383,10 +383,12 @@ NTSTATUS hook_tcpip(DRIVER_OBJECT *old_DriverObject, DRIVER_OBJECT *new_DriverOb
 
 	for (i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++) {
 		if (b_hook) {
-			old_DriverObject->MajorFunction[i] = new_DriverObject->MajorFunction[i];
-			InterlockedExchange((PLONG)&new_DriverObject->MajorFunction[i], (LONG)HookedDeviceDispatch);
-		} else
-			new_DriverObject->MajorFunction[i] = old_DriverObject->MajorFunction[i];
+			//old_DriverObject->MajorFunction[i] = new_DriverObject->MajorFunction[i];
+			old_DriverObject->MajorFunction[i] = (PDRIVER_DISPATCH)InterlockedExchange((PLONG)&new_DriverObject->MajorFunction[i], (LONG)HookedDeviceDispatch);
+		} else {
+			//new_DriverObject->MajorFunction[i] = old_DriverObject->MajorFunction[i];
+			InterlockedExchange((PLONG)&new_DriverObject->MajorFunction[i], (LONG)old_DriverObject->MajorFunction[i]);
+		}
 	}
 	
 	return STATUS_SUCCESS;	
@@ -834,7 +836,7 @@ tdi_connect(PIRP irp, PIO_STACK_LOCATION irps, TDI_COMPLETE_NFO *tcn)
 	TA_ADDRESS *local_addr;
 	int result = FILTER_IGNORE;
 	BYTE ipproto;
-	ot_entry_t *ote_conn = NULL, *ote_addr;
+	ot_entry_t *ote_conn = NULL, *ote_addr = NULL;
 	KIRQL irql;
 	struct sbk_sock_rec log_record;
 	ULONG pid;
@@ -866,7 +868,7 @@ tdi_connect(PIRP irp, PIO_STACK_LOCATION irps, TDI_COMPLETE_NFO *tcn)
 		}
 
 		ote_addr = ot_find_fileobj(addrobj, NULL); // we're already in spinlock
-		if (!ote_conn) {
+		if (!ote_addr) {
 			DBGOUT(("tdi_connect: ot_find_fileobj(0x%x)\n", addrobj));
 			goto done;
 		}
@@ -1080,12 +1082,12 @@ done:
 			ote_conn->in_oob_offset += Irp->IoStatus.Information;
 		else ote_conn->in_offset += Irp->IoStatus.Information;
 
-	if(fShouldLog)
-		LogRecord(pid, &log_record);
-
 	if (ote_conn) KeReleaseSpinLock(&g_ot_hash_guard, irql);
 	if (b_free_data && data) free(data);
 	if (new_data) free(new_data);
+
+	if(fShouldLog)
+		LogRecord(pid, &log_record);
 
 	return tdi_complete(DeviceObject, Irp, Context);
 }
@@ -1194,13 +1196,12 @@ tdi_receive_datagram_complete(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp, IN PV
 
 done:
 	ote->in_offset += Irp->IoStatus.Information;
-
-	if(fShouldLog)
-		LogRecord(pid, &log_record);
-
 	if (ote) KeReleaseSpinLock(&g_ot_hash_guard, irql);
 	if (b_free_data && data) free(data);
 	if (new_data) free(new_data);
+
+	if(fShouldLog)
+		LogRecord(pid, &log_record);
 
 	return tdi_complete(DeviceObject, Irp, Context);
 }
@@ -1299,6 +1300,8 @@ tdi_send_complete(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp, IN PVOID Context)
 	fShouldLog = TRUE;
    
 done:
+	if (ote) KeReleaseSpinLock(&g_ot_hash_guard, irql);
+
 	// destroy replaced MDL
 	IoFreeMdl(Irp->MdlAddress);
 
@@ -1311,8 +1314,6 @@ done:
 
 	if(fShouldLog)
 		LogRecord(pid, &log_record);
-
-	if (ote) KeReleaseSpinLock(&g_ot_hash_guard, irql);
 
 	return tdi_complete(DeviceObject, Irp, Context);
 }
@@ -1469,20 +1470,6 @@ tdi_event_connect(
 	BOOL fShouldLog = FALSE;
 	ULONG pid;
 
-	ote_addr = ot_find_fileobj(ctx->fileobj, &irql);
-	if (!ote_addr) {
-		DBGOUT(("tdi_event_connect: ot_find_fileobj(0x%x)\n", ctx->fileobj));
-		goto done;
-	}
-
-	local_addr = (TA_ADDRESS *)(ote_addr->local_addr);
-
-	DBGOUT(("tdi_event_connect: %s %x:%u -> %x:%u\n", ote_addr->ProcessName,
-		ntohl(((TDI_ADDRESS_IP *)(remote_addr->Address))->in_addr),
-		ntohs(((TDI_ADDRESS_IP *)(remote_addr->Address))->sin_port),
-		ntohl(((TDI_ADDRESS_IP *)(local_addr->Address))->in_addr),
-		ntohs(((TDI_ADDRESS_IP *)(local_addr->Address))->sin_port)));
-
 	// run handler
 	status = ((PTDI_IND_CONNECT)(ctx->old_handler))
 		(ctx->old_context, RemoteAddressLength, RemoteAddress,
@@ -1494,7 +1481,22 @@ tdi_event_connect(
 	// create and initialize connobj
 
 	irps = IoGetCurrentIrpStackLocation(*AcceptIrp);
-	
+
+	ote_addr = ot_find_fileobj(ctx->fileobj, &irql);
+	if (!ote_addr) {
+		DBGOUT(("tdi_event_connect: ot_find_fileobj(0x%x)\n", ctx->fileobj));
+		goto done;
+	}
+
+	local_addr = (TA_ADDRESS *)(ote_addr->local_addr);
+	pid = ote_addr->pid;
+
+	DBGOUT(("tdi_event_connect: %s %x:%u -> %x:%u\n", ote_addr->ProcessName,
+		ntohl(((TDI_ADDRESS_IP *)(remote_addr->Address))->in_addr),
+		ntohs(((TDI_ADDRESS_IP *)(remote_addr->Address))->sin_port),
+		ntohl(((TDI_ADDRESS_IP *)(local_addr->Address))->in_addr),
+		ntohs(((TDI_ADDRESS_IP *)(local_addr->Address))->sin_port)));
+
 	KeReleaseSpinLock(&g_ot_hash_guard, irql); // for ot_add_fileobj
 	ote_addr = NULL;
 
@@ -1511,6 +1513,9 @@ tdi_event_connect(
 	
 	// associate connobj with addrobj
 	ote_conn->associated_fileobj = ctx->fileobj;
+
+	// save correct process id
+	ote_conn->pid = pid;
 
 	if (local_addr->AddressLength != remote_addr->AddressLength) {
 		// what the ...
@@ -1535,13 +1540,13 @@ tdi_event_connect(
 	}
 	memcpy(ote_conn->local_addr, local_addr, local_addr->AddressLength);
 
-	if(!ConvertConnToSocketRecord(ote_conn, SYS_CONNECT, &log_record)) {
+	if(!ConvertConnToSocketRecord(ote_conn, SYS_ACCEPT, &log_record)) {
 		DBGOUT(("tdi_event_connect: Unable to convert record!"));
 		goto done;
 	}
 
-	pid = ote_conn->pid;
 	fShouldLog = TRUE;
+
 done:
 	if (ote_addr || ote_conn)
 		KeReleaseSpinLock(&g_ot_hash_guard, irql);

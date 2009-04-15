@@ -39,7 +39,7 @@
 #include "consolespy.h"
 
 #define HASH_SIZE	0x0800
-#define CALC_HASH(x)  (x)
+#define CALC_HASH(x)  ((x) & (HASH_SIZE-1))
 
 static proc_entry_t **g_proc_hash;
 KSPIN_LOCK g_proc_hash_guard;

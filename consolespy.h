@@ -216,32 +216,32 @@ typedef struct _CSRSS_PORT_HANDLE_ENTRY {
    ULONG VirtualOffset;
 } CSRSS_PORT_HANDLE_ENTRY, *PCSRSS_PORT_HANDLE_ENTRY;
 
-static PCSRSS_PORT_HANDLE_ENTRY
+PCSRSS_PORT_HANDLE_ENTRY
 GetCsrssHandleEntry(
    IN ULONG ProcessId,
    IN CONST HANDLE PortHandle
    );
 
-static BOOLEAN 
+BOOLEAN 
 IsCsrssPortHandle(
    IN ULONG ProcessId,
    IN HANDLE hPort
    );
 
-static ULONG
+ULONG
 GetVirtualOffsetFromHandle(
    IN ULONG ProcessId,
    IN HANDLE PortHandle
    );
 
-static VOID
+VOID
 InsertCsrssPortHandle(
    IN ULONG ProcessId,
    IN HANDLE PortHandle,
    IN ULONG VirtualOffset
    );
 
-static VOID
+VOID
 RemoveCsrssPortHandle(
    IN ULONG ProcessId,
    IN HANDLE PortHandle
@@ -251,7 +251,6 @@ RemoveCsrssPortHandle(
 //
 // Hooked functions
 //
-static
 NTSTATUS 
 NTAPI 
 OnZwRequestWaitReplyPort(
@@ -260,7 +259,6 @@ OnZwRequestWaitReplyPort(
    OUT PPORT_MESSAGE ReplyMessage
    );
 
-static
 NTSTATUS
 NTAPI
 OnZwSecureConnectPort(
@@ -275,7 +273,6 @@ OnZwSecureConnectPort(
    IN OUT PULONG ConnectDataLength OPTIONAL
    );
 
-static
 NTSTATUS
 NTAPI OnZwCreateProcess(
 	OUT PHANDLE ProcessHandle,
@@ -288,14 +285,12 @@ NTAPI OnZwCreateProcess(
 	IN HANDLE ExceptionPort OPTIONAL
 );
 
-static
 NTSTATUS
 NTAPI
 OnZwClose(
    IN HANDLE Handle
    );
 
-static
 VOID
 LogIfStdHandle(
 		IN CONST HANDLE FileHandle,
@@ -303,7 +298,6 @@ LogIfStdHandle(
 		IN ULONG Length
 		);
 
-static
 NTSTATUS
 NTAPI
 OnZwReadFile(
@@ -318,7 +312,6 @@ OnZwReadFile(
     IN PULONG  Key  OPTIONAL
     );
 
-static
 NTSTATUS
 NTAPI
 OnZwWriteFile(
@@ -333,7 +326,6 @@ OnZwWriteFile(
     IN PULONG Key OPTIONAL
     );
 
-static
 NTSTATUS
 NTAPI
 OnZwCreateThread(
@@ -357,7 +349,7 @@ PsLookupProcessByProcessId(
 //
 // Driver code specifics
 //
-static BOOLEAN s_ConsoleSpyInit = FALSE;
+BOOLEAN s_ConsoleSpyInit;
 
 typedef void (__stdcall *PONCONSOLEIO)(const ProcessData *, const PANSI_STRING);
 

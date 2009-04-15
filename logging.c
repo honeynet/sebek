@@ -1204,9 +1204,10 @@ WritePacket(
 	}
 
 	// Convert to ANSI
-	RtlUnicodeStringToAnsiString(&asProcname, (PUNICODE_STRING)&pProcessData->usProcessName, TRUE);
+	//RtlUnicodeStringToAnsiString(&asProcname, (PUNICODE_STRING)&pProcessData->usProcessName, TRUE);
+	RtlInitAnsiString(&asProcname, pProcessData->ProcessName);
 	memcpy(sebekh->com, asProcname.Buffer, min(SEBEK_HEADER_COMMAND_LEN, asProcname.Length));
-	RtlFreeAnsiString(&asProcname);
+	//RtlFreeAnsiString(&asProcname);
 	
 	sebekh->length       = htonl(DataLength);
 	iph->ip_sum	= checksum((const USHORT *)iph, iph->ip_hl << 2);

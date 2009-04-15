@@ -47,6 +47,16 @@ UNICODE_STRING g_wConfigProcName;
 
 #define PSLOADEDMODULE_OFFSET 0x14
 
+// Our REAL function pointers
+ZWQUERYSYSTEMINFORMATION	s_fnZwQuerySystemInformation = NULL;
+ZWQUERYDIRECTORYFILE		s_fnZwQueryDirectoryFile = NULL;
+ZWOPENFILE					s_fnZwOpenFile = NULL;
+ZWCREATEFILE				s_fnZwCreateFile = NULL;
+ZWCREATEKEY					s_fnZwCreateKey = NULL;
+ZWOPENKEY					s_fnZwOpenKey = NULL;
+ZWENUMERATEKEY				s_fnZwEnumerateKey = NULL;
+ZWENUMERATEVALUEKEY			s_fnZwEnumerateValueKey = NULL;
+
 /*
  * Extract the file name and its length from an entry returned by the
  * ZwQueryDirectoryFile function.
@@ -220,7 +230,6 @@ ProcessDirEntries(
 	return rc;
 }
 
-static
 NTSTATUS
 NTAPI
 NewZwQueryDirectoryFile(
@@ -304,7 +313,6 @@ NewZwQueryDirectoryFile(
  *	process who's name begins with g_ConfigProcName.
  */
 
-static
 NTSTATUS 
 NTAPI
 NewZwQuerySystemInformation(
@@ -475,7 +483,6 @@ NewZwQuerySystemInformation(
 	return(rc);	
 }
 
-static
 NTSTATUS
 NTAPI
 NewZwOpenFile(
@@ -523,7 +530,6 @@ NewZwOpenFile(
 /*
  * Hook of ZwCreateFile(); disallows protected files from being opened.
  */
-static
 NTSTATUS
 NTAPI
 NewZwCreateFile (
@@ -578,7 +584,6 @@ NewZwCreateFile (
 /*
  * Hook of ZwCreateKey() don't allow protected keys to be opened.
  */
-static
 NTSTATUS
 NTAPI
 NewZwCreateKey (
@@ -619,7 +624,9 @@ NewZwCreateKey (
 /*
  * Hook of ZwOpenKey() don't allow protected keys to be opened.
  */
-static NTSTATUS NTAPI NewZwOpenKey (
+NTSTATUS 
+NTAPI 
+NewZwOpenKey (
 	OUT PHANDLE KeyHandle,
 	IN ACCESS_MASK DesiredAccess,
 	IN POBJECT_ATTRIBUTES ObjectAttributes
@@ -653,7 +660,6 @@ static NTSTATUS NTAPI NewZwOpenKey (
 /*
  * Hook of ZwEnumerateKey() hide protected keys
  */
-static
 NTSTATUS
 NTAPI
 NewZwEnumerateKey (
@@ -741,7 +747,6 @@ NewZwEnumerateKey (
  * Hook of ZwEnumerateValueKey(); hide protected values
  * XXX not yet
  */
-static
 NTSTATUS
 NTAPI
 NewZwEnumerateValueKey (

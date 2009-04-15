@@ -66,7 +66,7 @@ NTKERNELAPI NTSTATUS ObQueryNameString (
 void GetProcessNameOffset();
 BOOLEAN GetProcessName(PCHAR theName);
 
-static ULONG gProcessNameOffset;
+ULONG gProcessNameOffset;
 
 NTSTATUS
 RegGetSz(

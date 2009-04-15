@@ -273,7 +273,8 @@ NTSTATUS ot_add_conn_ctx(PFILE_OBJECT addrobj, CONNECTION_CONTEXT conn_ctx, PFIL
 	NTSTATUS status;
 	int i;
 
-	KeAcquireSpinLock(&g_cte_hash_guard, &irql);
+	//KeAcquireSpinLock(&g_cte_hash_guard, &irql);
+	KeAcquireSpinLockAtDpcLevel(&g_cte_hash_guard); // already under one spinlock
 	
 	for (cte = g_cte_hash[hash]; cte; cte = cte->next)
 		if (cte->addrobj == addrobj && cte->conn_ctx == conn_ctx) break;
@@ -296,7 +297,8 @@ NTSTATUS ot_add_conn_ctx(PFILE_OBJECT addrobj, CONNECTION_CONTEXT conn_ctx, PFIL
 	status = STATUS_SUCCESS;
 done:
 
-	KeReleaseSpinLock(&g_cte_hash_guard, irql);
+	//KeReleaseSpinLock(&g_cte_hash_guard, irql);
+	KeReleaseSpinLockFromDpcLevel(&g_cte_hash_guard);
 	return status;
 }
 
@@ -307,7 +309,8 @@ NTSTATUS ot_del_conn_ctx(PFILE_OBJECT addrobj, CONNECTION_CONTEXT conn_ctx)
 	ctx_entry_t *cte, *prev_cte;
 	NTSTATUS status;
 
-	KeAcquireSpinLock(&g_cte_hash_guard, &irql);
+	//KeAcquireSpinLock(&g_cte_hash_guard, &irql);
+	KeAcquireSpinLockAtDpcLevel(&g_cte_hash_guard); // already under one spinlock
 
 	prev_cte = NULL;
 	for (cte = g_cte_hash[hash]; cte; cte = cte->next) {
@@ -327,7 +330,8 @@ NTSTATUS ot_del_conn_ctx(PFILE_OBJECT addrobj, CONNECTION_CONTEXT conn_ctx)
 	status = STATUS_SUCCESS;
 done:
 
-	KeReleaseSpinLock(&g_cte_hash_guard, irql);
+	//KeReleaseSpinLock(&g_cte_hash_guard, irql);
+	KeReleaseSpinLockFromDpcLevel(&g_cte_hash_guard);
 	return status;
 }
 

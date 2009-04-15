@@ -1,7 +1,8 @@
 ################################################################################
 #                                                                              #
 #  Sebek-WIN32 v3.0.4:  kernel module for forensic data capture                #
-#                                                                              #
+#
+#  Chengyu Song <songchengyu@honeynet.org>
 #  Michael A. Davis <mdavis@savidtech.com>                                     #
 #                                                                              #
 ################################################################################
@@ -12,7 +13,11 @@ Theory of operation:
 
 Whats new in this version:
 
-  -  Fix for Bug #422 (Sebek 3.0.3 gives "malformed sebek record" error in Honeywall)
+  -  Fix for Bug #427 (Sebek 3.0.4 declares global variables used across files as static, causes ambiguity)
+  -  Fix for Bug #426 (Sebek 3.0.4 causes BSOD when accesses paged out PEB)
+  -  Fix for Bug #425 (Sebek 3.0.4 proc_tlb hash function may cause out of ranges array access, causes BSOD)
+  -  Fix for Bug #424 (Sebek 3.0.4 has memory leak problem in FreeProcessData)
+  -  Fix for Bug #423 (Sebek 3.0.4 reports socket accept events as connect events)
 
 Installing Sebek:
 

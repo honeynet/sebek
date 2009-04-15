@@ -266,7 +266,6 @@ typedef NTSTATUS (NTAPI *ZWQUERYDIRECTORYFILE)(
         BOOLEAN bRestartQuery
 );
 
-static
 NTSTATUS
 NTAPI
 NewZwQueryDirectoryFile(
@@ -301,7 +300,6 @@ typedef  NTSTATUS (NTAPI *ZWCREATEKEY) (
 );
 
 
-static
 NTSTATUS
 NTAPI
 NewZwOpenFile(
@@ -323,7 +321,6 @@ typedef NTSTATUS (NTAPI *ZWOPENFILE)(
 	ULONG OpenMode
 );
 
-static
 NTSTATUS
 NTAPI
 NewZwCreateFile(
@@ -355,7 +352,6 @@ typedef NTSTATUS (NTAPI *ZWCREATEFILE)(
 	IN ULONG EaLength
 );
 
-static
 NTSTATUS
 NTAPI
 NewZwCreateKey (
@@ -368,7 +364,6 @@ NewZwCreateKey (
 	OUT PULONG Disposition OPTIONAL
 );
 
-static
 NTSTATUS
 NTAPI
 NewZwOpenKey (
@@ -383,7 +378,6 @@ typedef NTSTATUS (NTAPI *ZWOPENKEY) (
 	IN POBJECT_ATTRIBUTES ObjectAttributes
 );
 
-static
 NTSTATUS
 NTAPI 
 NewZwEnumerateKey (
@@ -404,7 +398,6 @@ typedef NTSTATUS (NTAPI *ZWENUMERATEKEY) (
 	OUT PULONG ResultLength
 );
 
-static
 NTSTATUS
 NTAPI
 NewZwEnumerateValueKey (
@@ -431,16 +424,6 @@ VOID AdjustKeyName(PCHAR szKeyName);
 NTSTATUS InitAntiDetection(const DRIVER_OBJECT *pDriverObject);
 NTSTATUS UninitAntiDetection();
 
-// Our REAL function pointers
-static ZWQUERYSYSTEMINFORMATION   s_fnZwQuerySystemInformation = NULL;
-static ZWQUERYDIRECTORYFILE       s_fnZwQueryDirectoryFile = NULL;
-static ZWOPENFILE									s_fnZwOpenFile = NULL;
-static ZWCREATEFILE								s_fnZwCreateFile = NULL;
-static ZWCREATEKEY								s_fnZwCreateKey = NULL;
-static ZWOPENKEY									s_fnZwOpenKey = NULL;
-static ZWENUMERATEKEY							s_fnZwEnumerateKey = NULL;
-static ZWENUMERATEVALUEKEY				s_fnZwEnumerateValueKey = NULL;
-
-static BOOLEAN s_AntiDetectionInit = FALSE;
+BOOLEAN s_AntiDetectionInit;
 
 #endif
