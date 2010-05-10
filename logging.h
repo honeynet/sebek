@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,8 @@ typedef BYTE *				PBYTE;
 
  */
 #define PACKET_BUFFER_SIZE 1514
+
+#define LOGGING_POOL_TAG 'lkbs' //sebek logging
 
 typedef struct _LOGGING_GLOBALS
 {

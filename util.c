@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -207,7 +207,7 @@ BOOLEAN PathFromHandle (HANDLE hKey, PUNICODE_STRING lpszSubKeyVal, PCHAR fullna
 		return FALSE;
 
 	/* Allocate a temporary buffer */
-	tmpname = ExAllocatePool (PagedPool, MAXPATHLEN);
+	tmpname = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN, HELPER_POOL_TAG);
 	if (tmpname == NULL)
 		/* Not enough memory */
 		return FALSE;
@@ -221,8 +221,9 @@ BOOLEAN PathFromHandle (HANDLE hKey, PUNICODE_STRING lpszSubKeyVal, PCHAR fullna
 	if (NT_SUCCESS (ObReferenceObjectByHandle (hKey, 0, NULL, KernelMode, 
 		&pKey, NULL)) && pKey != NULL) {
 
-		fullUniName = ExAllocatePool (PagedPool, MAXPATHLEN * 2 + 
-			2 * sizeof(ULONG));
+		fullUniName = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN * 2 + 
+			2 * sizeof(ULONG), 
+			HELPER_POOL_TAG);
 		if (fullUniName == NULL) {
 			/* Not enough memory */
 			ObDereferenceObject (pKey);
@@ -345,7 +346,7 @@ BOOLEAN RemoveModule(void)
 	DBGOUT(("ServiceName UNICODE: %S", usServiceName.Buffer));
 	// Remove our registry entries
 	usKeyName.MaximumLength = usServicesKey.Length + usServiceName.Length + usEnumKeyName.Length + sizeof(WCHAR);
-	usKeyName.Buffer = ExAllocatePool(NonPagedPool, usKeyName.MaximumLength);
+	usKeyName.Buffer = ExAllocatePoolWithTag(NonPagedPool, usKeyName.MaximumLength, HELPER_POOL_TAG);
 	RtlZeroMemory(usKeyName.Buffer, usKeyName.MaximumLength);
 	DBGOUT(("KeyName Length: %d", usKeyName.MaximumLength));
 
@@ -421,7 +422,7 @@ BOOLEAN RemoveModule(void)
 		// Prepend \SystemRoot\ to the string
 		ExFreePool(usKeyName.Buffer);
 		usKeyName.MaximumLength = usSysRoot.Length + g_ImagePath.Length + sizeof(WCHAR);
-		usKeyName.Buffer = ExAllocatePool(NonPagedPool, usKeyName.MaximumLength);
+		usKeyName.Buffer = ExAllocatePoolWithTag(NonPagedPool, usKeyName.MaximumLength, HELPER_POOL_TAG);
 		RtlZeroMemory(usKeyName.Buffer, usKeyName.MaximumLength);
 		RtlCopyUnicodeString(&usKeyName, &usSysRoot);
 		status = RtlAppendUnicodeStringToString(&usKeyName, &g_ImagePath);
@@ -483,7 +484,7 @@ BOOLEAN GetUserSIDFromProcess(EPROCESS *pProcess, UNICODE_STRING *pusSID)
     return FALSE;
   }
 
-	tokenInfoBuffer = (PTOKEN_USER)ExAllocatePool(NonPagedPool, RetLen);
+	tokenInfoBuffer = (PTOKEN_USER)ExAllocatePoolWithTag(NonPagedPool, RetLen, HELPER_POOL_TAG);
 	if(tokenInfoBuffer)
       status = ZwQueryInformationToken(hToken, TokenUser, tokenInfoBuffer, RetLen, &RetLen);
  

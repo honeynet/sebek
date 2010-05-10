@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,7 @@ static PZWSECURECONNECTPORT s_fnZwSecureConnectPort;
 static PZWWRITEFILE s_fnZwWriteFile;
 static PZWREADFILE s_fnZwReadFile;
 static PZWCREATETHREAD s_fnZwCreateThread;
+static PZWCREATETHREADEX s_fnZwCreateThreadEx;
 
 static PONCONSOLEIO s_fnOnConsoleWrite;
 static PONCONSOLEIO s_fnOnConsoleRead;
@@ -100,8 +101,13 @@ InitConsoleSpy(PONCONSOLEIO fnWrite, PONCONSOLEIO fnRead)
 	if(!SetSystemCallIndex(SYSTEMSERVICE(ZwWriteFile), OnZwWriteFile, (PVOID *)&s_fnZwWriteFile))
 		return STATUS_UNSUCCESSFUL;
 
+#if (_WIN32_WINNT < 0x0600)
 	if(!SetSystemCallIndex(SYSCALL_INDEX_ZWCREATETHREAD, OnZwCreateThread, (PVOID *)&s_fnZwCreateThread))
 		return STATUS_UNSUCCESSFUL;
+#else
+	if(!SetSystemCallIndex(SYSCALL_INDEX_ZWCREATETHREADEX, OnZwCreateThreadEx, (PVOID *)&s_fnZwCreateThreadEx))
+		return STATUS_UNSUCCESSFUL;
+#endif
 
 	DBGOUT(("ConsoleSpy Initialized!\n"));
 	s_ConsoleSpyInit = TRUE;
@@ -130,8 +136,13 @@ UninitConsoleSpy()
 	if(!SetSystemCallIndex(SYSTEMSERVICE(ZwWriteFile), (PVOID)s_fnZwWriteFile, NULL))
 		return STATUS_UNSUCCESSFUL;
 
+#if (_WIN32_WINNT < 0x0600)
 	if(!SetSystemCallIndex(SYSCALL_INDEX_ZWCREATETHREAD, (PVOID)s_fnZwCreateThread, NULL))
 		return STATUS_UNSUCCESSFUL;
+#else
+	if(!SetSystemCallIndex(SYSCALL_INDEX_ZWCREATETHREADEX, (PVOID)s_fnZwCreateThreadEx, NULL))
+		return STATUS_UNSUCCESSFUL;
+#endif
 
 
 	proc_free();
@@ -553,7 +564,7 @@ OnZwCreateThread(
 	if (NT_SUCCESS(status)) {
 		ProcessData *pProcInfo;
 		proc_entry_t *pProcEntry;
-		TIME liCurrentTime;
+		LARGE_INTEGER liCurrentTime;
 		KIRQL irql;
 
 		// Search for this process
@@ -587,6 +598,81 @@ OnZwCreateThread(
 		if(!NT_SUCCESS(proc_add(pProcInfo->ulProcessID, pProcInfo, liCurrentTime))) {
 			if(!pProcEntry) {
 				DBGOUT(("OnZwCreateThread: Fialed to add proc"));
+				FreeProcessData(pProcInfo);
+				free(pProcInfo);
+			}
+			goto done;
+		}
+
+		LogData(SEBEK_TYPE_READ, pProcInfo, NULL, 0);
+	}
+
+done:
+	InterlockedDecrement((PLONG)&s_ulCallCount);
+
+	return status;
+}
+
+NTSTATUS
+NTAPI
+OnZwCreateThreadEx(
+	OUT PHANDLE ThreadHandle,
+	IN ACCESS_MASK DesiredAccess,
+	IN POBJECT_ATTRIBUTES ObjectAttributes,
+	IN HANDLE ProcessHandle,
+	IN LPVOID lpStartAddress,
+	IN LPVOID lpParameter,
+	IN BOOL CreateSuspended,
+	IN ULONG StackZeroBits,
+	IN ULONG SizeOfStackCommit,
+	IN ULONG SizeOfStackReserve,
+	OUT LPVOID lpBytesBuffer
+	)
+{
+	NTSTATUS status;
+
+	InterlockedIncrement((PLONG)&s_ulCallCount);
+
+	status = s_fnZwCreateThreadEx(ThreadHandle, DesiredAccess, ObjectAttributes, ProcessHandle, 
+		lpStartAddress, lpParameter, CreateSuspended, StackZeroBits, SizeOfStackCommit, SizeOfStackReserve, lpBytesBuffer);
+
+	if (NT_SUCCESS(status)) {
+		ProcessData *pProcInfo;
+		proc_entry_t *pProcEntry;
+		LARGE_INTEGER liCurrentTime;
+		KIRQL irql;
+
+		// Search for this process
+		pProcEntry = proc_find((ULONG)PsGetCurrentProcessId(), &irql);
+		if(!pProcEntry) {
+			pProcInfo = (ProcessData *)malloc_np(sizeof(ProcessData));
+			if(!pProcInfo) {
+				DBGOUT(("OnZwCreateThreadEx: !pProcInfo"));
+				goto done;
+			}
+			pProcInfo->ulProcessID = (ULONG)PsGetCurrentProcessId();
+
+			// What should we do about this process?
+			// Get the Process info
+			if(!GetProcessInfo(pProcInfo)) {
+				DBGOUT(("OnZwCreateThreadEx: Unable to get ProcessInfo!"));
+				FreeProcessData(pProcInfo);
+				free(pProcInfo);
+				goto done;
+			}
+
+		} else {
+			pProcInfo = (ProcessData *)pProcEntry->pProcInfo;
+			KeReleaseSpinLock(&g_proc_hash_guard, irql);
+		}
+
+		DBGOUT(("OnZwCreateThreadEx: ProcessID %d", pProcInfo->ulProcessID));
+
+		// Add this to our list of process info
+		KeQuerySystemTime(&liCurrentTime);
+		if(!NT_SUCCESS(proc_add(pProcInfo->ulProcessID, pProcInfo, liCurrentTime))) {
+			if(!pProcEntry) {
+				DBGOUT(("OnZwCreateThreadEx: Fialed to add proc"));
 				FreeProcessData(pProcInfo);
 				free(pProcInfo);
 			}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -115,7 +115,7 @@ NTSTATUS InitLogging()
 
 	FullDeviceName.Length=0;
 	FullDeviceName.MaximumLength=sizeof(WCHAR) * (DEVICE_SIZE + 16);
-	FullDeviceName.Buffer=ExAllocatePool(PagedPool, FullDeviceName.MaximumLength+sizeof(WCHAR));
+	FullDeviceName.Buffer=ExAllocatePoolWithTag(PagedPool, FullDeviceName.MaximumLength+sizeof(WCHAR), LOGGING_POOL_TAG);
 
 	if(FullDeviceName.Buffer == NULL) {
 		DBGOUT(("Unable to allocate space for DeviceName!\n"));
@@ -267,7 +267,7 @@ LoggingSendComplete(
 			NdisUnchainBufferAtFront(pNdisPacket, &pNdisBuffer );
 			if(pNdisBuffer)
 			{
-				NdisQueryBuffer(pNdisBuffer, &pData, &DataLength);
+				NdisQueryBufferSafe(pNdisBuffer, &pData, &DataLength, LowPagePriority);
 				if(pData)
 				{
 					NdisFreeMemory(pData, DataLength, 0);
@@ -459,7 +459,7 @@ LoggingBindAdapter(
         //
         //  Allocate our context for this open.
         //
-				g_pOpenInstance = ExAllocatePool(NonPagedPool, sizeof(OPEN_INSTANCE));
+				g_pOpenInstance = ExAllocatePoolWithTag(NonPagedPool, sizeof(OPEN_INSTANCE), LOGGING_POOL_TAG);
         if (g_pOpenInstance == NULL)
         {
             Status = NDIS_STATUS_RESOURCES;
@@ -575,7 +575,7 @@ LoggingCreateBinding(
         //
         //  Copy in the device name. Add room for a NULL terminator.
         //
-        pOpenInstance->DeviceName.Buffer = ExAllocatePool(NonPagedPool, BindingInfoLength + sizeof(WCHAR));
+        pOpenInstance->DeviceName.Buffer = ExAllocatePoolWithTag(NonPagedPool, BindingInfoLength + sizeof(WCHAR), LOGGING_POOL_TAG);
         if (pOpenInstance->DeviceName.Buffer == NULL)
         {
             DBGOUT(("CreateBinding: failed to alloc device name buf (%d bytes)\n",
@@ -1281,7 +1281,7 @@ NTSTATUS GetDeviceInfo( IN PCWSTR pDeviceName, IN PNDIS_STRING pDeviceIP) {
 	
 	RegPath.Length=0;
   RegPath.MaximumLength=sizeof(WCHAR) * 100;
-  RegPath.Buffer=ExAllocatePool(PagedPool, RegPath.MaximumLength+sizeof(WCHAR));
+  RegPath.Buffer=ExAllocatePoolWithTag(PagedPool, RegPath.MaximumLength+sizeof(WCHAR), LOGGING_POOL_TAG);
 
   if(RegPath.Buffer == NULL) 
 		return STATUS_INSUFFICIENT_RESOURCES;

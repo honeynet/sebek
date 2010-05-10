@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -126,8 +126,9 @@ mt_malloc(ULONG size, const char *file, ULONG line)
 		return NULL;
 	}
 
-	data = (struct prefix *)ExAllocatePool(NonPagedPool,
-		sizeof(struct prefix) + size + sizeof(struct postfix));
+	data = (struct prefix *)ExAllocatePoolWithTag(NonPagedPool,
+		sizeof(struct prefix) + size + sizeof(struct postfix),
+		'mkbs');
 	if (data == NULL)
 		return NULL;
 

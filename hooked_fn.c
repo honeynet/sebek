@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -870,10 +870,10 @@ new_TransferDataCompleteHandler(
 	NdisChainBufferAtFront(Packet, hdr_buffer);
 
 	// A HACK! actually NDIS_BUFFER is MDL!
-	buf = MmGetSystemAddressForMdl(hdr_buffer);
+	buf = MmGetSystemAddressForMdlSafe(hdr_buffer, LowPagePriority); //FIXME priority
 
-	NdisQueryBuffer(hdr_buffer, NULL, &hdr_size);
-	NdisQueryBuffer(data_buffer, NULL, &data_size);
+	NdisQueryBufferSafe(hdr_buffer, NULL, &hdr_size, LowPagePriority);
+	NdisQueryBufferSafe(data_buffer, NULL, &data_size, LowPagePriority);
 
 	if (adapter != NULL) {
 

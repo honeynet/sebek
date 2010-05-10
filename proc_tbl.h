@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2004 The Honeynet Project.
+* Copyright (C) 2001-2010 The Honeynet Project.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ NTSTATUS proc_add(CONST ULONG pid, CONST ProcessData *pProcInfo, CONST TIME seen
 typedef struct proc_entry {
 	struct proc_entry *next;
 	ULONG pid;
-	TIME lastseen;
+	LARGE_INTEGER lastseen;
 	CONST ProcessData *pProcInfo;
 } proc_entry_t;
 

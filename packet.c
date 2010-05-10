@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@ filter_packet(int direction, int iface, PNDIS_PACKET packet)
 
 	/* process ether_hdr */
 
-	NdisQueryBuffer(buffer, &ether_hdr, &buffer_len);
+	NdisQueryBufferSafe(buffer, &ether_hdr, &buffer_len, LowPagePriority);
 
 	if (buffer_len < sizeof(struct ether_hdr)) {
 		DBGOUT(("filter_packet: too small buffer for ether_hdr! (%u)\n", buffer_len));
@@ -78,7 +78,7 @@ filter_packet(int direction, int iface, PNDIS_PACKET packet)
 	} else {
 		// use next buffer in chain
 		NdisGetNextBuffer(buffer, &buffer);
-		NdisQueryBuffer(buffer, &pointer, &buffer_len);
+		NdisQueryBufferSafe(buffer, &pointer, &buffer_len, LowPagePriority);
 	}
 
 	if (ether_hdr->ether_type == ETHERNET_TYPE_IP) {
@@ -107,7 +107,7 @@ filter_packet(int direction, int iface, PNDIS_PACKET packet)
 		} else {
 			// use next buffer in chain
 			NdisGetNextBuffer(buffer, &buffer);
-			NdisQueryBuffer(buffer, &pointer, &buffer_len);
+			NdisQueryBufferSafe(buffer, &pointer, &buffer_len, LowPagePriority);
 		}
 
 		result = process_transp(direction, iface, ip_hdr->ip_p, ip_hdr, pointer, buffer_len);

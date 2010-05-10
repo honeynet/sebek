@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,17 @@
 #define SYSCALL_INDEX_ZWCREATETHREAD			0x37
 #endif
 
+// Windows Vista and Server 2008
+#if (_WIN32_WINNT == 0x0600)
+#define SYSCALL_INDEX_ZWSECURECONNECTPORT       0x11F
+#define SYSCALL_INDEX_ZWCREATETHREADEX			0x181
+#endif
+
+// Windows 7
+#if (_WIN32_WINNT == 0x0601)
+#define SYSCALL_INDEX_ZWSECURECONNECTPORT		0x138
+#define SYSCALL_INDEX_ZWCREATETHREADEX			0x058
+#endif
 
 //
 // LPC/CSRSS Undocumented Information
@@ -192,6 +203,26 @@ ZwCreateThread(
 typedef NTSTATUS (NTAPI *PZWCREATETHREAD)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES,
 										   HANDLE, PCLIENT_ID,
 										   PCONTEXT, HANDLE,BOOLEAN);
+
+NTSTATUS
+NTAPI
+ZwCreateThreadEx(
+				 OUT PHANDLE ThreadHandle,
+				 IN ACCESS_MASK DesiredAccess,
+				 IN POBJECT_ATTRIBUTES ObjectAttributes,
+				 IN HANDLE ProcessHandle,
+				 IN LPVOID lpStartAddress,
+				 IN LPVOID lpParameter,
+				 IN BOOL CreateSuspended,
+				 IN ULONG StackZeroBits,
+				 IN ULONG SizeOfStackCommit,
+				 IN ULONG SizeOfStackReserve,
+				 OUT LPVOID lpBytesBuffer
+				 );
+
+typedef NTSTATUS (NTAPI *PZWCREATETHREADEX)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES,
+											HANDLE, LPVOID, LPVOID,
+											BOOL, ULONG, ULONG, ULONG, LPVOID);
 
 typedef NTSTATUS (NTAPI *PZWCLOSE)(HANDLE);
 typedef NTSTATUS (NTAPI *PZWWRITEFILE)(HANDLE, HANDLE,
@@ -337,6 +368,22 @@ OnZwCreateThread(
 	IN PCONTEXT ThreadContext,
 	IN HANDLE UserStack,
 	IN BOOLEAN CreateSuspended
+	);
+
+NTSTATUS
+NTAPI
+OnZwCreateThreadEx(
+	OUT PHANDLE ThreadHandle,
+	IN ACCESS_MASK DesiredAccess,
+	IN POBJECT_ATTRIBUTES ObjectAttributes,
+	IN HANDLE ProcessHandle,
+	IN LPVOID lpStartAddress,
+	IN LPVOID lpParameter,
+	IN BOOL CreateSuspended,
+	IN ULONG StackZeroBits,
+	IN ULONG SizeOfStackCommit,
+	IN ULONG SizeOfStackReserve,
+	OUT LPVOID lpBytesBuffer
 	);
 
 NTKERNELAPI

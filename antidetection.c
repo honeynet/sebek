@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -260,7 +260,7 @@ NewZwQueryDirectoryFile(
 			bRestartQuery);
 
 	/* Find the full name of the dir and check access on it */
-	szFullName = ExAllocatePool (PagedPool, MAXPATHLEN);
+	szFullName = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN, AD_POOL_TAG);
 	if (szFullName != NULL) {
 		if (!PathFromHandle (hFile, NULL,/*FileName,*/ szFullName)) {
 			ExFreePool (szFullName);
@@ -362,7 +362,7 @@ NewZwQuerySystemInformation(
 					BOOLEAN bFound = FALSE;
 					PCHAR c = NULL;
 
-					virt_addrn = (PULONG)ExAllocatePool(PagedPool, sizeof(ULONG));
+					virt_addrn = (PULONG)ExAllocatePoolWithTag(PagedPool, sizeof(ULONG), AD_POOL_TAG);
 
 					mdln = IoAllocateMdl(virt_addrn, sizeof(ULONG), FALSE, FALSE, NULL);
 					if (mdln == NULL) {
@@ -370,9 +370,23 @@ NewZwQuerySystemInformation(
 						break;
 					}
 
-					MmProbeAndLockPages(mdln, KernelMode, IoModifyAccess);
+					try {
+						MmProbeAndLockPages(mdln, KernelMode, IoModifyAccess);
 
-					n = (ULONG *)MmMapLockedPages(mdln, UserMode); 
+					} except (EXCEPTION_EXECUTE_HANDLER) {
+						IoFreeMdl(mdln);
+						ExFreePool(virt_addrn);
+						break;
+					}
+
+					n = (ULONG *)MmMapLockedPagesSpecifyCache(
+						mdln, 
+						UserMode, 
+						MmCached, //FIXME
+						NULL,
+						FALSE,
+						LowPagePriority
+						); 
 
 					ret = s_fnZwQuerySystemInformation(SystemModuleInformation, n, 0, n);
 					
@@ -385,7 +399,7 @@ NewZwQuerySystemInformation(
 						break;
 					}
 					
-					virt_addr = (PULONG)ExAllocatePool(PagedPool, (*n) * sizeof(*q));
+					virt_addr = (PULONG)ExAllocatePoolWithTag(PagedPool, (*n) * sizeof(*q), AD_POOL_TAG);
 
 					mdl = IoAllocateMdl(virt_addr, (*n) * sizeof(*q), FALSE, FALSE, NULL);
 					if (mdl == NULL) {
@@ -395,7 +409,14 @@ NewZwQuerySystemInformation(
 
 					MmProbeAndLockPages(mdl, KernelMode, IoModifyAccess);
 
-					q = (ULONG *)MmMapLockedPages(mdl, UserMode); 
+					q = (ULONG *)MmMapLockedPagesSpecifyCache(
+						mdln, 
+						UserMode, 
+						MmCached, //FIXME
+						NULL,
+						FALSE,
+						LowPagePriority
+						); 
 
 					ret = s_fnZwQuerySystemInformation(SystemModuleInformation, q, (*n) * sizeof(*q), 0);
 					
@@ -508,7 +529,7 @@ NewZwOpenFile(
 
 	if(ObjectAttributes) {
 		/* Find the full name of the file and check access on it */
-		szFullName = ExAllocatePool (PagedPool, MAXPATHLEN);
+		szFullName = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN, AD_POOL_TAG);
 		if (szFullName != NULL) {
 			if (PathFromHandle (ObjectAttributes->RootDirectory, ObjectAttributes->ObjectName, szFullName)) {
 				if (ShouldHideFile(szFullName)) {
@@ -560,7 +581,7 @@ NewZwCreateFile (
 
 	if(ObjectAttributes) {
 		/* Find the full name of the file and check access on it */
-		szFullName = ExAllocatePool (PagedPool, MAXPATHLEN);
+		szFullName = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN, AD_POOL_TAG);
 		if (szFullName != NULL) {
 			if (PathFromHandle (ObjectAttributes->RootDirectory, 
 				ObjectAttributes->ObjectName, szFullName)) {
@@ -601,7 +622,7 @@ NewZwCreateKey (
 
 	if(ObjectAttributes) {
 		/* Find the full name of the key and check access on it */
-		szFullName = ExAllocatePool (PagedPool, MAXPATHLEN);
+		szFullName = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN, AD_POOL_TAG);
 		if(szFullName != NULL) {
 			if(PathFromHandle (ObjectAttributes->RootDirectory, ObjectAttributes->ObjectName, szFullName)) {
 				AdjustKeyName (szFullName);
@@ -637,7 +658,7 @@ NewZwOpenKey (
 
 	/* Find the full name of the key and check access on it */
 	if(ObjectAttributes) {
-		szFullName = ExAllocatePool (PagedPool, MAXPATHLEN);
+		szFullName = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN, AD_POOL_TAG);
 		if (szFullName != NULL) {
 			if (PathFromHandle (ObjectAttributes->RootDirectory, 
 				ObjectAttributes->ObjectName, szFullName)) {
@@ -677,7 +698,7 @@ NewZwEnumerateKey (
 	PULONG pulNameLen = NULL;
 
 	/* Find the full name of the key and check access on it */
-	szFullName = ExAllocatePool (PagedPool, MAXPATHLEN);
+	szFullName = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN, AD_POOL_TAG);
 	if (szFullName != NULL) {
 		if (!PathFromHandle (KeyHandle, NULL, szFullName)) {
 			ExFreePool (szFullName);
@@ -762,7 +783,7 @@ NewZwEnumerateValueKey (
 	PCHAR szFullName;
 
 	/* Find the full name of the key and check access on it */
-	szFullName = ExAllocatePool (PagedPool, MAXPATHLEN);
+	szFullName = ExAllocatePoolWithTag (PagedPool, MAXPATHLEN, AD_POOL_TAG);
 	if (szFullName != NULL) {
 		if (!PathFromHandle (KeyHandle, NULL, szFullName)) {
 			ExFreePool (szFullName);

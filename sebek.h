@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -204,6 +204,8 @@ struct sbk_sock_rec {
 #define SEBEK_MAGIC   208 // this is in network order. 0xD0D0D000 in host order on x86
 #define SEBEK_PACKET_LEN (ETH_HEADER_LEN + IP_HEADER_LEN + UDP_HEADER_LEN + SEBEK_HEADER_LEN)
 #define SEBEK_PROTOCOL_VER 3
+
+#define HELPER_POOL_TAG 'hkbs'
 
 #include <poppack.h>
 

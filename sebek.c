@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -211,6 +211,7 @@ done:
  * Dispatch function.
  * Works with i/o controls for control device
  */
+DRIVER_DISPATCH DeviceDispatch;
 NTSTATUS
 DeviceDispatch(IN const PDEVICE_OBJECT DeviceObject, IN PIRP irp)
 {
@@ -248,6 +249,7 @@ DeviceDispatch(IN const PDEVICE_OBJECT DeviceObject, IN PIRP irp)
  * Driver can't be unloaded due to security reasons.
  * This function only for memory leak testing
  */
+DRIVER_UNLOAD OnUnload;
 VOID
 OnUnload(IN PDRIVER_OBJECT DriverObject)
 {
@@ -350,7 +352,7 @@ find_system_dll(const char *name)
 	void *base;
 
 	ZwQuerySystemInformation(SystemModuleInformation, &n, 0, &n);
-	q = (ULONG *)ExAllocatePool(PagedPool, n);
+	q = (ULONG *)ExAllocatePoolWithTag(PagedPool, n, HELPER_POOL_TAG);
 	ZwQuerySystemInformation(SystemModuleInformation, q, n * sizeof (*q), 0);
 	
 	p = (PSYSTEM_MODULE_INFORMATION)(q + 1);

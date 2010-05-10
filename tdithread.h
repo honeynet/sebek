@@ -24,6 +24,7 @@ ObReferenceObjectByName(
 
 extern POBJECT_TYPE	IoDriverObjectType;
 
+KSTART_ROUTINE TDIThread;
 VOID TDIThread(PVOID pData);
 
 #endif

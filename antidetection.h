@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 The Honeynet Project.
+ * Copyright (C) 2001-2010 The Honeynet Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,8 @@
 #include "system_service.h"
 #include "nt.h"
 #include "windef.h"
+
+#define AD_POOL_TAG 'akbs'
 
 typedef struct _MODULE_ENTRY {
 	LIST_ENTRY lModuleList;

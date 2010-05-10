@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2004 The Honeynet Project.
+* Copyright (C) 2001-2010 The Honeynet Project.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ void RemoveUnseenProcesses(void)
 {
 	KIRQL irql;
 	int i;
-	TIME liCurrentTime;
+	LARGE_INTEGER liCurrentTime;
 
 	if (g_proc_hash) {
 		KeAcquireSpinLock(&g_proc_hash_guard, &irql);
@@ -101,7 +101,7 @@ void RemoveUnseenProcesses(void)
 			while (ote) {
 				proc_entry_t *ote2 = ote->next;
 
-				if(RtlLargeIntegerLessThan(liCurrentTime, ote->lastseen)) {
+				if(liCurrentTime.QuadPart < ote->lastseen.QuadPart) {
 					FreeProcessData((ProcessData *)ote->pProcInfo);
 					free((ProcessData *)ote->pProcInfo);
 					free(ote);
