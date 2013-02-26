@@ -1,0 +1,43 @@
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sebek", "sebek.vcproj", "{392D60C9-6E63-4FCA-97F3-CDC50410538D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Windows 2000 Checked|Win32 = Windows 2000 Checked|Win32
+		Windows 2000 Free|Win32 = Windows 2000 Free|Win32
+		Windows 2003 Checked|Win32 = Windows 2003 Checked|Win32
+		Windows 2003 Free|Win32 = Windows 2003 Free|Win32
+		Windows 7 Checked|Win32 = Windows 7 Checked|Win32
+		Windows 7 Free|Win32 = Windows 7 Free|Win32
+		Windows Vista Checked|Win32 = Windows Vista Checked|Win32
+		Windows Vista Free|Win32 = Windows Vista Free|Win32
+		Windows XP Checked|Win32 = Windows XP Checked|Win32
+		Windows XP Free|Win32 = Windows XP Free|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2000 Checked|Win32.ActiveCfg = Windows 2000 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2000 Checked|Win32.Build.0 = Windows 2000 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2000 Free|Win32.ActiveCfg = Windows 2000 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2000 Free|Win32.Build.0 = Windows 2000 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2003 Checked|Win32.ActiveCfg = Windows 2003 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2003 Checked|Win32.Build.0 = Windows 2003 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2003 Free|Win32.ActiveCfg = Windows 2003 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 2003 Free|Win32.Build.0 = Windows 2003 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 7 Checked|Win32.ActiveCfg = Windows 7 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 7 Checked|Win32.Build.0 = Windows 7 Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 7 Free|Win32.ActiveCfg = Windows 7 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows 7 Free|Win32.Build.0 = Windows 7 Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows Vista Checked|Win32.ActiveCfg = Windows Vista Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows Vista Checked|Win32.Build.0 = Windows Vista Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows Vista Free|Win32.ActiveCfg = Windows Vista Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows Vista Free|Win32.Build.0 = Windows Vista Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows XP Checked|Win32.ActiveCfg = Windows XP Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows XP Checked|Win32.Build.0 = Windows XP Checked|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows XP Free|Win32.ActiveCfg = Windows XP Free|Win32
+		{392D60C9-6E63-4FCA-97F3-CDC50410538D}.Windows XP Free|Win32.Build.0 = Windows XP Free|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

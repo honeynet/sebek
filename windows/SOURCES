@@ -1,0 +1,45 @@
+!IF "$(DDKBUILDENV)" != "chk"
+NTDEBUG=ntsdnodbg
+!ELSE
+NTDEBUG=ntsd 
+!ENDIF
+
+NTDEBUGTYPE=both
+USE_PDB=1
+
+TARGETNAME=SEBEK
+TARGETPATH=OBJ
+TARGETTYPE=DRIVER
+TARGETLIBS=$(TARGETLIBS) $(DDK_LIB_PATH)\ndis.lib $(DDK_LIB_PATH)\tdi.lib
+
+# You can enable/disable feature by adding and removing the defines. Useful for testing specific features.
+#
+# USE the line below for FREE builds
+#C_DEFINES=-DENABLE_ANTIDETECTION -DENABLE_CONSOLESPY -DENABLE_TDIHOOK
+#C_DEFINES=-DENABLE_CONSOLESPY -DENABLE_TDIHOOK -DENABLE_ANTIDETECTION
+
+!IF "$(DDK_TARGET_OS)" == "Win2K"
+C_DEFINES=$(C_DEFINES) -D_WIN2K_COMPAT_SLIST_USAGE
+!ENDIF
+
+USER_INCLUDES=$(NTMAKEENV)\..\inc;$(NTMAKEENV)\..\src\network\inc
+
+SOURCES=    adapters.c \
+			av.c \
+			hooked_fn.c \
+			sebek.c \
+			packet.c \
+			memtrack.c \
+			sock.c \
+			consolespy.c \
+			antidetection.c \
+			logging.c \
+			util.c \
+			exports.c \
+			debug.c \
+			tdithread.c \
+			obj_tbl.c \
+			tdi_hook.c \
+			proc_tbl.c \
+			datapipe.c \
+			sebek.rc
