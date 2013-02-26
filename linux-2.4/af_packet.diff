@@ -1,0 +1,81 @@
+--- af_packet.c.orig	Mon Feb  2 11:12:30 2004
++++ af_packet.c	Mon Feb  2 11:12:32 2004
+@@ -35,13 +35,17 @@
+  *	Cyrus Durgin		:	Fixed kerneld for kmod.
+  *	Michal Ostrowski        :       Module initialization cleanup.
+  *
++ *          Edward Balas        :       Butchered for Sebek use
++ *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+  *		as published by the Free Software Foundation; either version
+  *		2 of the License, or (at your option) any later version.
+  *
+  */
+- 
++
++#include "sebek.h"
++
+ #include <linux/config.h>
+ #include <linux/types.h>
+ #include <linux/sched.h>
+@@ -1019,7 +1022,12 @@
+ 	struct sk_buff *skb;
+ 	int copied, err;
+ 
++	//---- sebek variables
++        u32 * s_ptr;
++	struct udphdr * udp_ptr;
++
+ 	err = -EINVAL;
++
+ 	if (flags & ~(MSG_PEEK|MSG_DONTWAIT|MSG_TRUNC))
+ 		goto out;
+ 
+@@ -1048,8 +1056,12 @@
+ 	 *	but then it will block.
+ 	 */
+ 
++ try_again: 
++
+ 	skb=skb_recv_datagram(sk,flags,flags&MSG_DONTWAIT,&err);
+ 
++
++	
+ 	/*
+ 	 *	An error occurred so return it. Because skb_recv_datagram() 
+ 	 *	handles the blocking we don't see and worry about blocking
+@@ -1059,6 +1071,26 @@
+ 	if(skb==NULL)
+ 		goto out;
+ 
++
++	//------ Filter out sebek packets if
++	//------  The protocol is IP
++	//------- Destintion matches the configured val
++        //------- first 32 bits of the payload match the magic val.
++	if(ntohs(skb->protocol)      ==  ETH_P_IP   &&
++	   skb->nh.iph->protocol     ==  IPPROTO_UDP      ){ 
++
++	   //--- this is a bit of a hack
++          udp_ptr       = (struct udphdr *)((char *)((char *)skb->nh.iph + sizeof(struct iphdr)));
++          s_ptr         = (u32 *)((char *)((char *)udp_ptr     + sizeof(struct udphdr)));
++	  
++	   if((ntohs(udp_ptr->dest)     == (BLOCK[DPORT_OFFSET] & 0x0000FFFF)) &&
++	      ntohl(*s_ptr)            == BLOCK[MAGIC_OFFSET]){
++	  
++	   	skb_free_datagram(sk, skb);
++	  	goto try_again;
++	  }	
++	}
++	       
+ 	/*
+ 	 *	You lose any data beyond the buffer you gave. If it worries a
+ 	 *	user program they can ask the device for its MTU anyway.
+@@ -1902,6 +1934,3 @@
+ 	return 0;
+ }
+ 
+-module_init(packet_init);
+-module_exit(packet_exit);
+-MODULE_LICENSE("GPL");

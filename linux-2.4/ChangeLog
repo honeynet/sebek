@@ -1,0 +1,122 @@
+################################################################################
+#                                                                              #
+#  Sebek:  kernel module based data capture                                    #
+#                                                                              #
+#  Edward Balas ebalas@indiana.edu                                             #
+#                                                                              #
+################################################################################
+
+Whats new in version 2.0.1?
+
+  - no longer based on adore rootkit, with the exception of the cleaner module.
+  - no user-space applications running
+  - no special files or devices
+  - packets can not be seen from honeypot, even if libpcap is from known good 
+    source.
+  - configuration is much simpler.
+  - packets are no longer encrypted or obfuscated because they are hidden from
+    the user in the kernel.
+
+Whats new in version 2.1.1?
+
+  - New binary data format makes parsing of data more reliable.
+  - New packet marking technique uses a magic value in the payload and the UDP 
+    port numbers as the basis for identifying which packets to hide.
+  - More reliable export of data when read request exceeds MTU.
+  - Can be configured to collect all read data or only keystrokes, in prior 
+    versions we had a series of filters for interesting data, this lead to 
+    potential blind spots that could be utilized to circumvent monitoring.
+
+Whats new in version 2.1.3?
+
+  - Revised install script including new defaults, you must now specify
+	magic value and destination port, no defaults for these.
+  - Prior versions were hiding based on SRC port, DST port, and Magic value,
+	this has been changed so that is only checks on DST port and Magic 
+	value.
+  - Added ability to configure Source Port number.  
+
+Whats new in version 2.1.5?
+
+   - Found serious bug in version 2.1.1 -> 2.1.4 of the sebek client where these
+	clients would not hide sebek packets from other sebek hosts.  This was 
+	was the result of incorrect packet header parsing in conjunction with
+	a failure to convert the magic value to network byte order.
+
+   - Honeynet Project Security Advisory 2004-001 describes a data disclosure 
+	vuln.  Some enhancements have been added to reduce the disclosure risk.
+	
+	-y option added it insmod to disable the sysoops symbols for the sebek
+		module.  This on its own breaks sebek_rape.
+
+	- Data structures and parameter names passed to the kernel module now
+		vary with each build, making it more difficult to extract the
+		config from an in memory version of sebek.
+
+
+Whats new in version 2.1.7?
+
+  - Resolved a few build issue
+
+  - Maximillian Dornseif and  Thorsten Holz reported a flaw in sebek regarding 
+	packet and byte counters going backwards under heavy load.  It turns 
+	out that that was just one of the problems we discovered under further 
+	investigation.  On some gig-e cards, the counters were incrementing 
+	as a result of sebek transmissions. On other drivers the number stayed 
+	on average in the correct position but was floating around the true 
+	value due to the way the driver was updating the kernel counters.  To
+	resolve these issues the packet counter manipulation technique was 
+	revamped to provide more complete support for all drivers.
+
+Whats new in version 3.0.0a?
+
+ - Major version increment, this version not backwards compatable.
+
+ - The binary record format has changed to version 3.  This version includes the
+	addition of the parent process id for each record,  A sys_socket type 
+	and an sys_open type and lastly the inode associated with the read. 
+	You will need to use a 3.x version of the server to handle the new 
+	record format.
+
+ - Implemented the sys_socket tracking.  This allows us to map network activity 
+	to process activity.
+
+ - Implemented sys_open trakcing.  This allows us to map a read action to a 
+	file name and its inode.
+
+ - Added the recording of Inodes, this was needed to avoid the dup2 based 
+	obfuscation techniques as demonstrated by Philippe Biondi.  In his 
+	technique he would change the file that a given fd was bound too and
+	then read random junk.  With inode tracking we should be able to 
+	screen the junk.
+
+ - In response to NoSEBrEaK, By Dornseif, Holz and Klein:
+	- initialized block structure to random values
+	- disabling function is disabled if we are not in testing mode.
+	- still need to:
+	  + have a kernel patch so that syscall table cant be "fixed"
+	  + add ability to record data accessed via mmap.
+
+ - Removing the module doesnt work so well currently it will cause a panic, for 
+	now dont remove the module after installing.
+
+Whats new in version 3.0.1b
+
+ - packet queuing added to decouple read from packet transmission
+
+ - recording readv and pread to counteract evasion ala sebekkill by
+   Ilja van Sprundel.
+ 
+ 
+
+Whats new in version 3.0.3
+
+ - a few bug fixes
+
+ - modified af_packet.diff to remove unncessary parts
+
+ - enhanced config process to support different kern source
+   locations and compiler versions
+
+	
+	  
