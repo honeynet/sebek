@@ -1,0 +1,79 @@
+*** af_packet.c.linux-2.6.10	2005-07-05 16:45:01.759612310 -0500
+--- af_packet.c	2005-07-05 16:55:28.481413398 -0500
+***************
+*** 73,78 ****
+--- 73,80 ----
+  #include <linux/module.h>
+  #include <linux/init.h>
+  
++ #include "sebek.h"
++ 
+  #ifdef CONFIG_INET
+  #include <net/inet_common.h>
+  #endif
+***************
+*** 1040,1045 ****
+--- 1042,1050 ----
+  	struct sk_buff *skb;
+  	int copied, err;
+  
++ 	u32 * s_ptr;
++ 	struct udphdr * udp_ptr;
++ 
+  	err = -EINVAL;
+  	if (flags & ~(MSG_PEEK|MSG_DONTWAIT|MSG_TRUNC|MSG_CMSG_COMPAT))
+  		goto out;
+***************
+*** 1069,1074 ****
+--- 1074,1081 ----
+  	 *	but then it will block.
+  	 */
+  
++ 	try_again:
++ 
+  	skb=skb_recv_datagram(sk,flags,flags&MSG_DONTWAIT,&err);
+  
+  	/*
+***************
+*** 1079,1085 ****
+--- 1086,1108 ----
+  
+  	if(skb==NULL)
+  		goto out;
++ 	/*
++ 	 *      Sebek Filtering
++ 	 *
++ 	 */
++ 	if(ntohs(skb->protocol)      ==  ETH_P_IP   &&
++ 	   skb->nh.iph->protocol     ==  IPPROTO_UDP      ){
+  
++ 	   udp_ptr       = (struct udphdr *)((char *)((char *)skb->nh.iph + sizeof(struct iphdr)));
++ 	   s_ptr         = (u32 *)((char *)((char *)udp_ptr     + sizeof(struct udphdr)));
++         
++ 	   if(ntohs(udp_ptr->dest)     == BLOCK[DPORT_OFFSET] &&
++               ntohl(*s_ptr)            == BLOCK[MAGIC_OFFSET]){
++ 
++                skb_free_datagram(sk, skb);
++                goto try_again;
++            }
++ 	}
+  	/*
+  	 *	You lose any data beyond the buffer you gave. If it worries a
+  	 *	user program they can ask the device for its MTU anyway.
+***************
+*** 1895,1901 ****
+  	return 0;
+  }
+  
+! module_init(packet_init);
+! module_exit(packet_exit);
+! MODULE_LICENSE("GPL");
+! MODULE_ALIAS_NETPROTO(PF_PACKET);
+--- 1918,1924 ----
+  	return 0;
+  }
+  
+! //module_init(packet_init);
+! //module_exit(packet_exit);
+! //MODULE_LICENSE("GPL");
+! //MODULE_ALIAS_NETPROTO(PF_PACKET);
